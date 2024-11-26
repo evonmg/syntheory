@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Optional, List, Iterator, Iterable, Dict, Any, Tuple
 from itertools import product
 
+# changed
+import csv
+
 from config import OUTPUT_DIR, DEFAULT_SOUNDFONT_LOCATION
 from dataset.music.constants import (
     PITCH_CLASS_TO_NOTE_NAME_SHARP,
@@ -60,10 +63,11 @@ def get_all_chords() -> List[Tuple[int, str]]:
     chord_types = list(_CHORD_MAP.keys())
     return list(product(note_names, chord_types))
 
-
+# Adds all of the chord configurations into a DatasetRowDescription
 def get_row_iterator(
     chords: Iterable[Tuple[int, str]], instruments: List[Dict[str, Any]]
 ) -> Iterator[DatasetRowDescription]:
+    # TODO: add text prompts
     idx = 0
     for root_note_pitch_class, chord_type in chords:
         note_name = get_note_name_from_pitch_class(root_note_pitch_class)
@@ -81,11 +85,13 @@ def get_row_iterator(
                 )
                 idx += 1
 
-
+# Creates a midi file for each row
 def row_processor(
     dataset_path: Path, row: DatasetRowDescription
 ) -> List[DatasetRowDescription]:
     row_idx, row_info = row
+
+    # TODO: generate prompts for text generation using python string wizardry
 
     # get soundfont information
     note_name = row_info["note_name"]
@@ -97,6 +103,12 @@ def row_processor(
     midi_program_name = instrument_info["name"]
     midi_category = instrument_info["category"]
 
+    # TODO
+    # examples of text prompts for chords:
+    # Cmaj, Cmaj6, Cmaj64 - note_name + chord_type + inversion ?
+    # store each of the possible options into a csv file? txt file?
+    # but we don't need instrument information
+
     cleaned_name = midi_program_name.replace(" ", "_")
     midi_file_path = (
         dataset_path
@@ -105,6 +117,11 @@ def row_processor(
     synth_file_path = (
         dataset_path
         / f"{note_name}_{chord_type}_{inversion or '5'}_{midi_program_num}_{cleaned_name}.wav"
+    )
+    # add chord text descriptions. except this time it makes one for every instrument which is definitely a waste of computation
+    text_file_path = (
+        dataset_path
+        / f"{note_name}_{chord_type}_{inversion or '5'}.csv"
     )
 
     chord_midi = get_chord_midi(root_note_pitch_class, chord_type, inversion)
@@ -122,6 +139,20 @@ def row_processor(
     midi_file.tracks.append(midi_track)
     midi_file.save(midi_file_path)
     produce_synth_wav_from_midi(midi_file_path, synth_file_path)
+
+    # create rows of text prompts
+    # examples of text prompts for chords:
+    # C minor, Cmin, Cm - note_name + chord_type + inversion
+    prompts = [f"{note_name} {chord_type} {inversion or '5'}", f"{note_name}{chord_type[:3]}{inversion or '5'}"]
+    if chord_type == "minor":
+        prompts.append(f"{note_name}m{inversion or '5'}")
+    elif chord_type == "major":
+        prompts.append(f"{note_name}M{inversion or '5'}")
+
+    # create csv file
+    with open(text_file_path, "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(prompts)
 
     is_silent = is_wave_silent(synth_file_path)
 

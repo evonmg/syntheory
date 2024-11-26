@@ -25,6 +25,8 @@ class Model(Enum):
     CHROMA = 7
     MFCC = 8
     HANDCRAFT = 9
+    # TODO: add text encoder
+    MUSICGEN_TEXT_ENCODER = 10
 
     def to_string(self) -> str:
         return self.name
@@ -37,7 +39,7 @@ class Model(Enum):
             return 24
         elif self in {Model.MUSICGEN_DECODER_LM_M, Model.MUSICGEN_DECODER_LM_L}:
             return 48
-        elif self in {Model.MUSICGEN_AUDIO_ENCODER, Model.MELSPEC, Model.CHROMA, Model.MFCC, Model.HANDCRAFT}:
+        elif self in {Model.MUSICGEN_AUDIO_ENCODER, Model.MELSPEC, Model.CHROMA, Model.MFCC, Model.HANDCRAFT, Model.MUSICGEN_TEXT_ENCODER}:
             return None
         else:
             raise ValueError(f"Invalid model: {self}")
@@ -56,7 +58,7 @@ def load_musicgen_model(model: Model):
             "facebook/musicgen-medium"
         ), MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-medium")
     elif (
-        model == Model.MUSICGEN_AUDIO_ENCODER or model == Model.MUSICGEN_DECODER_LM_L
+        model == Model.MUSICGEN_AUDIO_ENCODER or model == Model.MUSICGEN_DECODER_LM_L or model == Model.MUSICGEN_TEXT_ENCODER
     ):
         return AutoProcessor.from_pretrained(
             "facebook/musicgen-large"
@@ -253,3 +255,12 @@ def extract_musicgen_decoder_lm_emb(
                 return out.decoder_attentions[extract_from_layer].mean(axis=(2, 3)).squeeze().detach().numpy()
             else:
                 return out.decoder_attentions[extract_from_layer].squeeze().detach().numpy()
+
+def extract_musicgen_text_encoder_emb(
+    text: Path, 
+    processor: AutoProcessor, 
+    model: Union[MusicgenForConditionalGeneration],
+    meanpool: bool = True
+) -> np.ndarray:
+    print("hi")
+    # TODO

@@ -17,6 +17,9 @@ from dataset.audio.synth import produce_synth_wav_from_midi
 from dataset.audio.wav import is_wave_silent
 from dataset.synthetic.dataset_writer import DatasetWriter, DatasetRowDescription
 
+import csv
+import string
+
 _REGISTERS = (3, 6, 9)
 
 
@@ -90,6 +93,7 @@ def row_processor(
     midi_program_name = instrument_info["name"]
     midi_category = instrument_info["category"]
 
+    # TODO: add text prompts
     cleaned_name = midi_program_name.replace(" ", "_")
     midi_file_path = (
         dataset_path
@@ -99,6 +103,12 @@ def row_processor(
         dataset_path
         / f"{midi_note_val}_{register}_{note_name}_{midi_program_num}_{cleaned_name}.wav"
     )
+    # text prompt location
+    text_file_path = (
+        dataset_path
+        / f"{midi_note_val}_{register}_{note_name}.csv"
+    )
+
     note_midi = get_note_midi(midi_note_val)
     midi_file = create_midi_file()
     midi_track = create_midi_track(
@@ -117,6 +127,24 @@ def row_processor(
 
     octave = midi_note_val // 12
     root_note_pitch_class = midi_note_val % 12
+
+    # create rows of text prompts
+    # examples of text prompts for notes:
+    # C#0, C-sharp 0, D-flat 0
+    prompts = [f"{note_name}{octave}"]
+    if note_name[-1] == "#":
+        prompts.append(f"{note_name[0]} sharp {octave}")
+        letters = string.ascii_uppercase
+        index = letters.index(note_name[0])
+        prompts.append(f"{letters[(index+1)%7]} flat {octave}")
+    else:
+        prompts.append(f"{note_name[0]} natural {octave}")
+
+    # create csv file
+    # rewrites this for every instrument which is very inefficient but maybe it's fine
+    with open(text_file_path, "w") as f:
+        writer = csv.writer(f)
+        writer.writerow(prompts)
 
     # record this row in the csv
     return [
