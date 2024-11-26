@@ -490,6 +490,7 @@ def get_text_embedding_from_model_using_config(
     model: MusicgenForConditionalGeneration = None,
 ) -> np.ndarray:
     # TODO: add checks to make sure we aren't trying to get text embedding out of jukebox or whatever
+    # test
     model_type = Model[model_config["model_type"]]
 
     embedding = text_prompt_to_embedding_np_array(
