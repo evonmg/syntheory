@@ -84,6 +84,5 @@ def get_instruments(
                 }
             )
             prev_category = sound_category
-    # edited
-    print([all_instruments[0]])
+    # edited to only return the first instrument
     return [all_instruments[0]]

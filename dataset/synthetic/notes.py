@@ -105,8 +105,7 @@ def row_processor(
     )
     # text prompt location
     text_file_path = (
-        dataset_path
-        / f"{midi_note_val}_{register}_{note_name}.csv"
+        dataset_path / "prompts.csv"
     )
 
     note_midi = get_note_midi(midi_note_val)
@@ -141,8 +140,8 @@ def row_processor(
         prompts.append(f"{note_name[0]} natural {octave}")
 
     # create csv file
-    # rewrites this for every instrument which is very inefficient but maybe it's fine
-    with open(text_file_path, "w") as f:
+    # rewrites this for every instrument which is not good but maybe it's fine for now. move into the row iterator function…?
+    with open(text_file_path, "a") as f:
         writer = csv.writer(f)
         writer.writerow(prompts)
 

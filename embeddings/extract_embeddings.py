@@ -16,7 +16,7 @@ import zarr
 from util import use_770_permissions
 from config import OUTPUT_DIR, load_config
 from embeddings.config_checksum import compute_checksum
-from embeddings.models import audio_file_to_embedding_np_array, Model, load_musicgen_model
+from embeddings.models import audio_file_to_embedding_np_array, Model, load_musicgen_model, text_prompt_to_embedding_np_array
 
 class ShardStatus(Enum):
     DONE = 1
@@ -85,6 +85,9 @@ class DatasetEmbeddingInformation:
         self.max_samples_per_shard = max_samples_per_shard
         self.dataset_name = self.dataset_folder.parts[-1]
         self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
+        # edited
+        self.dataset_prompts_df = pd.read_csv(self.dataset_folder / "prompts.csv")
+        # finish edit
         self.num_total_samples = self.dataset_info_df.shape[0]
         self.status_folder = self.dataset_folder / (
             self.dataset_name + f"_{self.model_config_checksum}_status"
@@ -172,6 +175,7 @@ class DatasetEmbeddingInformation:
             Model.MUSICGEN_DECODER_LM_S,
             Model.MUSICGEN_DECODER_LM_M,
             Model.MUSICGEN_DECODER_LM_L,
+            Model.MUSICGEN_TEXT_ENCODER,
         }:
             processor, model = load_musicgen_model(model_type)
         else:
@@ -190,6 +194,17 @@ class DatasetEmbeddingInformation:
             model,
         )
         embeddings_shape = embedding.shape
+
+        # loop through the prompts, get dimensions?? maybe just [0][0]
+        prompts = self.dataset_prompts_df.iloc[0]
+        for prompt in prompts:
+            embedding = get_text_embedding_from_model_using_config(
+                # i don't need to pass in a path i just need to pass in the actual prompt
+                prompt,
+                self.model_config,
+                processor,
+                model,
+            )
 
         single_shard_zeros = np.zeros(
             (min(self.max_samples_per_shard, self.dataset_info_df.shape[0]),) + embeddings_shape
@@ -286,6 +301,7 @@ class DatasetEmbeddingInformation:
                 all_shard_script_paths.append(tmp_file)
         return all_shard_script_paths
     
+    # TODO: edit
     def write_shard_runner_scripts_and_embedding_info_csv(self, conda_env_name: str, slurm_partition: str) -> List[Path]:
         if self.embeddings_info_file.is_file():
             raise RuntimeError(
@@ -412,6 +428,7 @@ def extract_shard(
 
             if not np.any(zarr_file[sample_idx]):
                 # all 0s in this array slice, hasn't yet been written, do not overwrite already written
+                # TODO: this too ahhh. what does this function do
                 embedding_vec = get_embedding_from_model_using_config(
                     dataset_folder / audio_file_path, model_config, processor, model
                 )
@@ -433,7 +450,6 @@ def extract_shard(
     shard_status_path.write_text("done")
 
     return zarr_file, np.array(written_idx)
-
 
 def get_embedding_from_model_using_config(
     audio_file: Path,
@@ -463,6 +479,31 @@ def get_embedding_from_model_using_config(
         # meanpool defaults to True
         meanpool=model_config.get("meanpool", True),
     )
+
+    return embedding
+
+# added
+def get_text_embedding_from_model_using_config(
+    prompt: str,
+    model_config: Dict[str, Any],
+    processor: AutoProcessor = None,
+    model: MusicgenForConditionalGeneration = None,
+) -> np.ndarray:
+    # TODO: add checks to make sure we aren't trying to get text embedding out of jukebox or whatever
+    model_type = Model[model_config["model_type"]]
+
+    embedding = text_prompt_to_embedding_np_array(
+        prompt,
+        model_type,
+        processor,
+        model,
+        extract_from_layer=model_config.get("extract_from_layer", None),
+        # decoder hidden states defaults to True
+        decoder_hidden_states=model_config.get("decoder_hidden_states", True),
+        # meanpool defaults to True
+        meanpool=model_config.get("meanpool", True),
+    )
+
     return embedding
 
 
@@ -487,7 +528,6 @@ def get_scripts_to_extract_embeddings_for_dataset_with_model(
     )
 
     return slurm_files
-
 
 def extract_embeddings_for_dataset_with_model(
     dataset_folder: Path,

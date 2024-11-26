@@ -166,6 +166,41 @@ def audio_file_to_embedding_np_array(
         raise ValueError(f"Invalid model: {model_type}")
     return embedding
 
+# added
+def text_prompt_to_embedding_np_array(
+    prompt: str,
+    model_type: Model = Model.MUSICGEN_TEXT_ENCODER,
+    processor: AutoProcessor = None,
+    model: Union[MusicgenForConditionalGeneration] = None,
+    extract_from_layer: Optional[int] = None,
+    decoder_hidden_states: bool = True,
+    meanpool: bool = True
+) -> np.ndarray:
+    
+    # MusicGen Features
+    if model_type == Model.MUSICGEN_TEXT_ENCODER:
+        embedding: np.ndarray = extract_musicgen_text_encoder_emb(
+            processor, model, prompt
+        )
+
+    # elif model_type in {
+    #     Model.MUSICGEN_DECODER_LM_S,
+    #     Model.MUSICGEN_DECODER_LM_M,
+    #     Model.MUSICGEN_DECODER_LM_L
+    # }:
+    #     embedding: np.ndarray = extract_musicgen_decoder_lm_emb(
+    #         audio_file,
+    #         processor,
+    #         model,
+    #         extract_from_layer,
+    #         hidden_states=decoder_hidden_states,
+    #         meanpool=meanpool
+    #     )
+
+    else:
+        raise ValueError(f"Invalid model: {model_type}")
+    return embedding
+
 
 def extract_musicgen_audio_encoder_emb(
     audio_file: Path, 
@@ -257,10 +292,35 @@ def extract_musicgen_decoder_lm_emb(
                 return out.decoder_attentions[extract_from_layer].squeeze().detach().numpy()
 
 def extract_musicgen_text_encoder_emb(
-    text: Path, 
     processor: AutoProcessor, 
     model: Union[MusicgenForConditionalGeneration],
+    text_cond: str, 
     meanpool: bool = True
 ) -> np.ndarray:
     print("hi")
     # TODO
+
+    """
+    Extract embeddings from MusicGen Audio Encoder
+    """
+    # set up inputs
+    inputs = processor(
+        text=text_cond,
+        padding=True,
+        return_tensors="pt",
+    )
+
+    x = inputs["input_values"]
+
+    # text encoder
+    text_encoder = model.get_text_encoder()
+
+    # extract representations from text encoder
+    for layer in text_encoder.encoder.layers:
+        x = layer(x)
+
+    # i have no idea what this does
+    if meanpool:
+        return x.mean(axis=2).squeeze().detach().numpy()
+    else:
+        return x.squeeze().detach().numpy()
