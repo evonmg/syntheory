@@ -25,7 +25,6 @@ class Model(Enum):
     CHROMA = 7
     MFCC = 8
     HANDCRAFT = 9
-    # TODO: add text encoder
     MUSICGEN_TEXT_ENCODER = 10
 
     def to_string(self) -> str:
@@ -180,22 +179,10 @@ def text_prompt_to_embedding_np_array(
     # MusicGen Features
     if model_type == Model.MUSICGEN_TEXT_ENCODER:
         embedding: np.ndarray = extract_musicgen_text_encoder_emb(
-            processor, model, prompt
+            processor,
+            model,
+            prompt
         )
-
-    # elif model_type in {
-    #     Model.MUSICGEN_DECODER_LM_S,
-    #     Model.MUSICGEN_DECODER_LM_M,
-    #     Model.MUSICGEN_DECODER_LM_L
-    # }:
-    #     embedding: np.ndarray = extract_musicgen_decoder_lm_emb(
-    #         audio_file,
-    #         processor,
-    #         model,
-    #         extract_from_layer,
-    #         hidden_states=decoder_hidden_states,
-    #         meanpool=meanpool
-    #     )
 
     else:
         raise ValueError(f"Invalid model: {model_type}")
@@ -297,9 +284,6 @@ def extract_musicgen_text_encoder_emb(
     text_cond: str, 
     meanpool: bool = True
 ) -> np.ndarray:
-    print("hi")
-    # TODO
-
     """
     Extract embeddings from MusicGen Audio Encoder
     """
@@ -310,14 +294,16 @@ def extract_musicgen_text_encoder_emb(
         return_tensors="pt",
     )
 
-    x = inputs["input_values"]
+    x = inputs["input_ids"]
 
     # text encoder
     text_encoder = model.get_text_encoder()
 
     # extract representations from text encoder
-    for layer in text_encoder.encoder.layers:
+    for layer in text_encoder.encoder.block:
         x = layer(x)
+
+    print(x.shape)
 
     # i have no idea what this does
     if meanpool:

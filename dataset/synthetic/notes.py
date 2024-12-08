@@ -130,17 +130,20 @@ def row_processor(
     # create rows of text prompts
     # examples of text prompts for notes:
     # C#0, C-sharp 0, D-flat 0
-    prompts = [f"{note_name}{octave}"]
+    prompts = [f"{note_name}{octave} {midi_program_name}"]
     if note_name[-1] == "#":
-        prompts.append(f"{note_name[0]} sharp {octave}")
-        letters = string.ascii_uppercase
-        index = letters.index(note_name[0])
-        prompts.append(f"{letters[(index+1)%7]} flat {octave}")
+        prompts.append(f"{note_name[0]} sharp {octave} {midi_program_name}")
+
+        # this is messing up the csv reading so
+        # letters = string.ascii_uppercase
+        # index = letters.index(note_name[0])
+        # prompts.append(f"{letters[(index+1)%7]} flat {octave} {midi_program_name}")
     else:
-        prompts.append(f"{note_name[0]} natural {octave}")
+        prompts.append(f"{note_name[0]} natural {octave} {midi_program_name}")
 
     # create csv file
-    # rewrites this for every instrument which is not good but maybe it's fine for now. move into the row iterator function…?
+    # writes this for every instrument which is not good
+    # checks if instrument == first instrument? in which case it only gets written once for all instruments
     with open(text_file_path, "a") as f:
         writer = csv.writer(f)
         writer.writerow(prompts)

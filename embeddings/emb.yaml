@@ -1,25 +1,25 @@
 # Models to extract representations from
 models:
-  - HANDCRAFT
-  - MUSICGEN_AUDIO_ENCODER
-  - JUKEBOX
-  - MUSICGEN_DECODER_LM_S
-  - MUSICGEN_DECODER_LM_M
-  - MUSICGEN_DECODER_LM_L
-  - MELSPEC
-  - MFCC
-  - CHROMA
+  # - HANDCRAFT
+  # - MUSICGEN_AUDIO_ENCODER
+  # - JUKEBOX
+  # - MUSICGEN_DECODER_LM_S
+  # - MUSICGEN_DECODER_LM_M
+  # - MUSICGEN_DECODER_LM_L
+  # - MELSPEC
+  # - MFCC
+  # - CHROMA
   - MUSICGEN_TEXT_ENCODER
 
 # Concepts to extract representations for
 concepts:
-  - time_signatures
-  - tempos
+  # - time_signatures
+  # - tempos
   - notes
-  - chords
-  - scales
-  - intervals
-  - chord_progressions
+  # - chords
+  # - scales
+  # - intervals
+  # - chord_progressions
 
 # Global settings
 settings:

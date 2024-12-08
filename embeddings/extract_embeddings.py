@@ -84,11 +84,18 @@ class DatasetEmbeddingInformation:
         self.model_name = model_config["model_name"]
         self.max_samples_per_shard = max_samples_per_shard
         self.dataset_name = self.dataset_folder.parts[-1]
-        self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
+        # self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
         # edited
-        self.dataset_prompts_df = pd.read_csv(self.dataset_folder / "prompts.csv")
+
+        if self.model_name == "MUSICGEN_TEXT_ENCODER":
+            self.dataset_info_df = pd.read_csv(self.dataset_folder / "prompts.csv")
+        else:
+            self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
+
         # finish edit
+        
         self.num_total_samples = self.dataset_info_df.shape[0]
+        
         self.status_folder = self.dataset_folder / (
             self.dataset_name + f"_{self.model_config_checksum}_status"
         )
@@ -182,38 +189,39 @@ class DatasetEmbeddingInformation:
             # this is either a hand-crafted feature, or JUKEBOX
             processor, model = None, None
 
-        # embeddings file does not yet exist, initialize it to all zeros
-        first_sample = self.dataset_info_df.iloc[0].to_dict()
-        audio_filepath = get_audio_file_path_from_sample_info(first_sample)
+        embedding = None
 
-        # do only 1 extraction just to get the dimensions
-        embedding = get_embedding_from_model_using_config(
-            self.dataset_folder / Path(audio_filepath),
-            self.model_config,
-            processor,
-            model,
-        )
-        embeddings_shape = embedding.shape
-
-        # loop through the prompts, get dimensions?? maybe just [0][0]
-        prompts = self.dataset_prompts_df.iloc[0]
-        for prompt in prompts:
+        # if model we're working with is the text encoder, pass through text input only
+        if (model_type == Model.MUSICGEN_TEXT_ENCODER):
+            # do only 1 extraction just to get the dimensions
+            prompt = self.dataset_info_df.iloc[0][0]
+        
             embedding = get_text_embedding_from_model_using_config(
-                # i don't need to pass in a path i just need to pass in the actual prompt
                 prompt,
                 self.model_config,
                 processor,
                 model,
             )
+        else:
+            # embeddings file does not yet exist, initialize it to all zeros
+            first_sample = self.dataset_info_df.iloc[0].to_dict()
+            audio_filepath = get_audio_file_path_from_sample_info(first_sample)
 
-        single_shard_zeros = np.zeros(
-            (min(self.max_samples_per_shard, self.dataset_info_df.shape[0]),) + embeddings_shape
-        )
+            # do only 1 extraction just to get the dimensions
+            embedding = get_embedding_from_model_using_config(
+                self.dataset_folder / Path(audio_filepath),
+                self.model_config,
+                processor,
+                model,
+            )
+        
+        embeddings_shape = embedding.shape
 
         zarr_file_sync = zarr.ProcessSynchronizer(
             str(self.zarr_sync_path.absolute())
         )
 
+        # gets shard sizes based on number of samples
         shard_sizes = self._get_shard_sizes()
 
         # create the first shard
@@ -301,8 +309,8 @@ class DatasetEmbeddingInformation:
                 all_shard_script_paths.append(tmp_file)
         return all_shard_script_paths
     
-    # TODO: edit
     def write_shard_runner_scripts_and_embedding_info_csv(self, conda_env_name: str, slurm_partition: str) -> List[Path]:
+        # if embeddings already exist
         if self.embeddings_info_file.is_file():
             raise RuntimeError(
                 f"The embeddings info file already exists, delete this file: {self.embeddings_info_file} if the intent is to regenerate the embeddings from scratch."
@@ -342,20 +350,36 @@ class DatasetEmbeddingInformation:
                 sample_info = t_sample_info._asdict()
 
                 # use the offset sample if it exists
-                audio_filepath = get_audio_file_path_from_sample_info(sample_info)
+                model_type = Model[self.model_config["model_type"]]
 
-                row = {
-                    "zarr_file_path": str(self.zarr_file_path.absolute()),
-                    "zarr_idx": sample_idx_in_dataset,
-                    "model_name": self.model_name,
-                    "model_config_checksum": self.model_config_checksum,
-                    "dataset_name": self.dataset_name,
-                    "dataset_shard": shard_idx,
-                    "audio_file_path": audio_filepath,
-                    # retain full original sample information
-                    "details": sample_info,
-                }
-                row_data.append(row)
+                if (model_type == Model.MUSICGEN_TEXT_ENCODER):
+                    row = {
+                        "zarr_file_path": str(self.zarr_file_path.absolute()),
+                        "zarr_idx": sample_idx_in_dataset,
+                        "model_name": self.model_name,
+                        "model_config_checksum": self.model_config_checksum,
+                        "dataset_name": self.dataset_name,
+                        "dataset_shard": shard_idx,
+                        # add string text prompt - for now, just the first one per concept. later TODO: fix either this or the dataset generation to create multiple rows
+                        "text_prompt": self.dataset_info_df.iloc[sample_idx][0],
+                        # retain full original sample information
+                        "details": sample_info,
+                    }
+                else:
+                    audio_filepath = get_audio_file_path_from_sample_info(sample_info)
+
+                    row = {
+                        "zarr_file_path": str(self.zarr_file_path.absolute()),
+                        "zarr_idx": sample_idx_in_dataset,
+                        "model_name": self.model_name,
+                        "model_config_checksum": self.model_config_checksum,
+                        "dataset_name": self.dataset_name,
+                        "dataset_shard": shard_idx,
+                        "audio_file_path": audio_filepath,
+                        # retain full original sample information
+                        "details": sample_info,
+                    }
+                    row_data.append(row)
 
         embedding_info_df = pd.json_normalize(row_data)
         embedding_info_df.to_csv(self.embeddings_info_file)
@@ -375,7 +399,6 @@ class DatasetEmbeddingInformation:
             # on disk already
             max_samples_per_shard=1
         )
-
 
 def extract_shard(
     dataset_folder_name: str,
@@ -424,14 +447,27 @@ def extract_shard(
 
             sample_idx = int(sample_info["zarr_idx"])
             written_idx.append(sample_idx)
-            audio_file_path = sample_info["audio_file_path"]
+
+            # if we're working with audio files
+            if "audio_file_path" in sample_info:
+                audio_file_path = sample_info["audio_file_path"]
+            # otherwise we're working with text
+            elif "text_prompt" in sample_info:
+                text_prompt = sample_info["text_prompt"]
 
             if not np.any(zarr_file[sample_idx]):
                 # all 0s in this array slice, hasn't yet been written, do not overwrite already written
-                # TODO: this too ahhh. what does this function do
-                embedding_vec = get_embedding_from_model_using_config(
-                    dataset_folder / audio_file_path, model_config, processor, model
-                )
+
+                # audio files
+                if "audio_file_path" in sample_info:
+                    embedding_vec = get_embedding_from_model_using_config(
+                        dataset_folder / audio_file_path, model_config, processor, model
+                    )
+                # text prompts
+                elif "text_prompt" in sample_info:
+                    embedding_vec = get_text_embedding_from_model_using_config(
+                        text_prompt, model_config, processor, model
+                    )
 
                 zarr_file[sample_idx] = embedding_vec
 
@@ -451,6 +487,7 @@ def extract_shard(
 
     return zarr_file, np.array(written_idx)
 
+# for audio extraction
 def get_embedding_from_model_using_config(
     audio_file: Path,
     model_config: Dict[str, Any],
@@ -458,6 +495,12 @@ def get_embedding_from_model_using_config(
     model: MusicgenForConditionalGeneration = None,
 ) -> np.ndarray:
     model_type = Model[model_config["model_type"]]
+
+    if model_type == Model.MUSICGEN_TEXT_ENCODER:
+        raise ValueError(
+            f"Cannot extract audio embeddings from text model {model_type}."
+        )
+
     minimum_duration = model_config["minimum_duration_in_sec"]
 
     audio, sr = torchaudio.load(audio_file)
@@ -489,9 +532,12 @@ def get_text_embedding_from_model_using_config(
     processor: AutoProcessor = None,
     model: MusicgenForConditionalGeneration = None,
 ) -> np.ndarray:
-    # TODO: add checks to make sure we aren't trying to get text embedding out of jukebox or whatever
-    # test
     model_type = Model[model_config["model_type"]]
+
+    if model_type != Model.MUSICGEN_TEXT_ENCODER:
+        raise ValueError(
+            f"Cannot extract text embeddings from audio model {model_type}."
+        )
 
     embedding = text_prompt_to_embedding_np_array(
         prompt,
@@ -530,6 +576,7 @@ def get_scripts_to_extract_embeddings_for_dataset_with_model(
 
     return slurm_files
 
+# extracts embeddings given a dataset and a model
 def extract_embeddings_for_dataset_with_model(
     dataset_folder: Path,
     model_config: Dict[str, Any],
@@ -537,6 +584,7 @@ def extract_embeddings_for_dataset_with_model(
     slurm_partition: str,
     max_samples_per_shard: int = 300,
 ) -> List[Path]:
+    # creates DatasetEmbeddingInformation for each model and dataset
     dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard)
     
     # create the zarr file to hold the embeddings
@@ -570,6 +618,8 @@ def get_failed_jobs(dataset_folder: Path, model_config: Dict[str, Any], max_samp
 
 
 def main():
+    # need to allocate 16 gb of memory
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="Path to the YAML config file")
     args = parser.parse_args()
@@ -583,9 +633,11 @@ def main():
     conda_env_name = settings['conda_env_name']
     
     with use_770_permissions():
+        # for every concept in the config
         for concept in concepts:
             dataset_folder = OUTPUT_DIR / concept
             
+            # load all models in the config
             for model_name in models:
                 model_config = {
                     "model_name": model_name,
@@ -596,6 +648,7 @@ def main():
                 if model_name == "JUKEBOX":
                     model_config["decoder_hidden_states"] = False
 
+                # creates shard scripts for each model
                 if has_no_shard_scripts(dataset_folder, model_config, settings['max_samples_per_shard']):
                     # - no scripts at all (never started)
                     print(f"Extracting embeddings for {concept} using {model_name}")
