@@ -360,8 +360,9 @@ class DatasetEmbeddingInformation:
                         "model_config_checksum": self.model_config_checksum,
                         "dataset_name": self.dataset_name,
                         "dataset_shard": shard_idx,
+                        # TODO: i think i can add 2 text prompts? according to the hunggingface docs
                         # add string text prompt - for now, just the first one per concept. later TODO: fix either this or the dataset generation to create multiple rows
-                        "text_prompt": self.dataset_info_df.iloc[sample_idx][0],
+                        "text_prompt": self.dataset_info_df.values.tolist(),
                         # retain full original sample information
                         "details": sample_info,
                     }

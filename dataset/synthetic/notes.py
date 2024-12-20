@@ -129,17 +129,18 @@ def row_processor(
 
     # create rows of text prompts
     # examples of text prompts for notes:
-    # C#0, C-sharp 0, D-flat 0
-    prompts = [f"{note_name}{octave} {midi_program_name}"]
+    # Generate the note C#0, C-sharp 0, D-flat 0
+    # TODO: come up with a way to not generate all the instruments with the text prompts specifically
+    prompts = [f"Generate the note {note_name}{octave}"]
     if note_name[-1] == "#":
-        prompts.append(f"{note_name[0]} sharp {octave} {midi_program_name}")
+        prompts.append(f"Generate the note {note_name[0]} sharp {octave}")
 
-        # this is messing up the csv reading so
+        # this is messing up the csv reading - somehow need to support variable lengths
         # letters = string.ascii_uppercase
         # index = letters.index(note_name[0])
-        # prompts.append(f"{letters[(index+1)%7]} flat {octave} {midi_program_name}")
+        # prompts.append(f"{letters[(index+1)%7]} flat {octave}")
     else:
-        prompts.append(f"{note_name[0]} natural {octave} {midi_program_name}")
+        prompts.append(f"Generate the note {note_name[0]} natural {octave}")
 
     # create csv file
     # writes this for every instrument which is not good

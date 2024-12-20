@@ -84,5 +84,5 @@ def get_instruments(
                 }
             )
             prev_category = sound_category
-    # edited to only return the first instrument
+    # edited to only do 1 instrument - later TODO: be able to generate all of the instruments at once?
     return [all_instruments[0]]

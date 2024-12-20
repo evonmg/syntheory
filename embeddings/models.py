@@ -285,7 +285,7 @@ def extract_musicgen_text_encoder_emb(
     meanpool: bool = True
 ) -> np.ndarray:
     """
-    Extract embeddings from MusicGen Audio Encoder
+    Extract embeddings from MusicGen Text Encoder
     """
     # set up inputs
     inputs = processor(
@@ -294,18 +294,16 @@ def extract_musicgen_text_encoder_emb(
         return_tensors="pt",
     )
 
-    x = inputs["input_ids"]
-
     # text encoder
     text_encoder = model.get_text_encoder()
 
+    x = text_encoder.encoder.embed_tokens(inputs["input_ids"])
+
     # extract representations from text encoder
     for layer in text_encoder.encoder.block:
-        x = layer(x)
+        # get first item of tuple?
+        x = layer(x)[0]
 
-    print(x.shape)
-
-    # i have no idea what this does
     if meanpool:
         return x.mean(axis=2).squeeze().detach().numpy()
     else:
