@@ -90,8 +90,15 @@ class DatasetEmbeddingInformation:
         self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
         
         # TODO: fix
-        # or wait maybe it's fine because the prompts dataset is pretty small
-        self.num_total_samples = self.dataset_info_df.shape[0]
+        if "audio" in conds:
+            self.num_total_samples = self.dataset_info_df.shape[0]
+        else:
+            # count number of unique prompts
+            i = 0
+            for prompt in self.dataset_info_df["prompts"].tolist():
+                prompts_list = ast.literal_eval(prompt)
+                i += len(prompts_list)
+            self.num_total_samples = i
         
         self.status_folder = self.dataset_folder / (
             self.dataset_name + f"_{self.model_config_checksum}_status"
@@ -193,7 +200,7 @@ class DatasetEmbeddingInformation:
         # text conditioning
         if "text" in self.conds:
             # do only 1 extraction just to get the dimensions
-            prompt = first_sample["prompts"]
+            prompt = first_sample["prompts"][0]
         
             embedding = get_text_embedding_from_model_using_config(
                 prompt,
@@ -320,6 +327,8 @@ class DatasetEmbeddingInformation:
         row_data = []
         slurm_files = []
         shard_idx = -1
+
+        # loop through shards
         for sample_idx in range(0, self.num_total_samples, self.max_samples_per_shard):
             # shards are 0-indexed
             shard_idx += 1
@@ -342,6 +351,8 @@ class DatasetEmbeddingInformation:
 
             # write a row for all the samples in this shard
             t_sample_info: NamedTuple
+            zarr_idx = 0
+            # TODO: ughh change this for loop
             for i, t_sample_info in enumerate(
                 self.dataset_info_df.iloc[
                     sample_idx : sample_idx + self.max_samples_per_shard
@@ -354,20 +365,23 @@ class DatasetEmbeddingInformation:
                 model_type = Model[self.model_config["model_type"]]
 
                 if "text" in self.conds:
-                    row = {
-                        "zarr_file_path": str(self.zarr_file_path.absolute()),
-                        "zarr_idx": sample_idx_in_dataset,
-                        "model_name": self.model_name,
-                        "model_config_checksum": self.model_config_checksum,
-                        "dataset_name": self.dataset_name,
-                        "dataset_shard": shard_idx,
-                        # TODO: i think i can add 2 text prompts? according to the hunggingface docs
-                        # add string text prompt - for now, just the first one per concept. later TODO: fix either this or the dataset generation to create multiple rows
-                        "text_prompt": ast.literal_eval(self.dataset_info_df.at[i, "prompts"]),
+                    prompts = ast.literal_eval(self.dataset_info_df.at[i, "prompts"])
+                    for j in range(len(prompts)):
+                        row = {
+                            "zarr_file_path": str(self.zarr_file_path.absolute()),
+                            "zarr_idx": zarr_idx,
+                            "model_name": self.model_name,
+                            "model_config_checksum": self.model_config_checksum,
+                            "dataset_name": self.dataset_name,
+                            "dataset_shard": shard_idx,
+                            # TODO: either create rows for each text prompt individually and extract embeddings for each, or create a separate mechanism for generating text prompts in a different csv file. or look into how batching is supposed to work. the first one looks easier, as I probably don't have to deal with changing the sample idx mechanism. but i guess i could also somehow increment sample id for every batch…… ahh
+                            "text_prompt": prompts[j],
 
-                        # retain full original sample information
-                        "details": sample_info,
-                    }
+                            # retain full original sample information
+                            "details": sample_info,
+                        }
+                        row_data.append(row)
+                        zarr_idx += 1
                 # TODO (later): make sure it's possible to do both audio and text
                 elif "audio" in self.conds:
                     audio_filepath = get_audio_file_path_from_sample_info(sample_info)
@@ -383,7 +397,7 @@ class DatasetEmbeddingInformation:
                         # retain full original sample information
                         "details": sample_info,
                     }
-                row_data.append(row)
+                    row_data.append(row)
 
         embedding_info_df = pd.json_normalize(row_data)
         embedding_info_df.to_csv(self.embeddings_info_file)
