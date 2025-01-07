@@ -79,12 +79,13 @@ def get_audio_file_path_from_sample_info(sample_info: Dict[str, Any]) -> str:
 
 class DatasetEmbeddingInformation:
 
-    def __init__(self, dataset_folder: Path, model_config: Dict[str, Any], max_samples_per_shard: int):
+    def __init__(self, dataset_folder: Path, model_config: Dict[str, Any], max_samples_per_shard: int, conds: list[str]):
         self.dataset_folder = dataset_folder
         self.model_config = model_config
         self.model_config_checksum = compute_checksum(model_config)
         self.model_name = model_config["model_name"]
         self.max_samples_per_shard = max_samples_per_shard
+        self.conds = conds
         self.dataset_name = self.dataset_folder.parts[-1]
         self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
         
@@ -189,8 +190,8 @@ class DatasetEmbeddingInformation:
 
         first_sample = self.dataset_info_df.iloc[0].to_dict()
 
-        # if model we're working with is the text encoder, pass through text input only
-        if (model_type == Model.MUSICGEN_TEXT_ENCODER):
+        # text conditioning
+        if "text" in self.conds:
             # do only 1 extraction just to get the dimensions
             prompt = first_sample["prompts"]
         
@@ -200,7 +201,8 @@ class DatasetEmbeddingInformation:
                 processor,
                 model,
             )
-        else:
+        # TODO: make sure it's possible to do both eventually
+        elif "audio" in self.conds:
             # embeddings file does not yet exist, initialize it to all zeros
             audio_filepath = get_audio_file_path_from_sample_info(first_sample)
 
@@ -351,7 +353,7 @@ class DatasetEmbeddingInformation:
                 # use the offset sample if it exists
                 model_type = Model[self.model_config["model_type"]]
 
-                if (model_type == Model.MUSICGEN_TEXT_ENCODER):
+                if "text" in self.conds:
                     row = {
                         "zarr_file_path": str(self.zarr_file_path.absolute()),
                         "zarr_idx": sample_idx_in_dataset,
@@ -366,7 +368,8 @@ class DatasetEmbeddingInformation:
                         # retain full original sample information
                         "details": sample_info,
                     }
-                else:
+                # TODO (later): make sure it's possible to do both audio and text
+                elif "audio" in self.conds:
                     audio_filepath = get_audio_file_path_from_sample_info(sample_info)
 
                     row = {
@@ -398,7 +401,8 @@ class DatasetEmbeddingInformation:
             model_config=model_config,
             # do not use this parameter anymore, the scripts to extract shards should exist
             # on disk already
-            max_samples_per_shard=1
+            max_samples_per_shard=1,
+            conds=[]
         )
 
 def extract_shard(
@@ -463,6 +467,8 @@ def extract_shard(
 
             if not np.any(zarr_file[sample_idx]):
                 # all 0s in this array slice, hasn't yet been written, do not overwrite already written
+
+                # TODO: eventually be able to do both text and audio
 
                 # audio files
                 if "audio_file_path" in sample_info:
@@ -557,9 +563,9 @@ def get_text_embedding_from_model_using_config(
 ) -> np.ndarray:
     model_type = Model[model_config["model_type"]]
 
-    if model_type != Model.MUSICGEN_TEXT_ENCODER:
+    if model_type not in {Model.MUSICGEN_TEXT_ENCODER, Model.MUSICGEN_DECODER_LM_L, Model.MUSICGEN_DECODER_LM_M, Model.MUSICGEN_DECODER_LM_S}:
         raise ValueError(
-            f"Cannot extract text embeddings from audio model {model_type}."
+            f"Cannot extract text embeddings from {model_type}."
         )
 
     embedding = text_prompt_to_embedding_np_array(
@@ -605,10 +611,11 @@ def extract_embeddings_for_dataset_with_model(
     model_config: Dict[str, Any],
     conda_env_name: str,
     slurm_partition: str,
+    conds: list[str],
     max_samples_per_shard: int = 300,
 ) -> List[Path]:
     # creates DatasetEmbeddingInformation for each model and dataset
-    dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard)
+    dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard, conds)
     
     # create the zarr file to hold the embeddings
     embeddings_array = dataset_coordinator.get_or_create_zarr_file()
@@ -625,15 +632,15 @@ def extract_embeddings_for_dataset_with_model(
 
     return slurm_files
 
-def has_no_shard_scripts(dataset_folder: Path, model_config: Dict[str, Any], max_samples_per_shard: int) -> bool:
-    dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard)
+def has_no_shard_scripts(dataset_folder: Path, model_config: Dict[str, Any], max_samples_per_shard: int, conds: list[str]) -> bool:
+    dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard, conds)
     # no shards have been written yet, so it does have unfinished jobs by definition
     return (
         dataset_coordinator.get_total_shards() != 0 and len(dataset_coordinator.get_bash_scripts_for_all_shards()) == 0
     )
 
-def get_failed_jobs(dataset_folder: Path, model_config: Dict[str, Any], max_samples_per_shard: int) -> List[Path]:
-    dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard)
+def get_failed_jobs(dataset_folder: Path, model_config: Dict[str, Any], max_samples_per_shard: int, conds: list[str]) -> List[Path]:
+    dataset_coordinator = DatasetEmbeddingInformation(dataset_folder, model_config, max_samples_per_shard, conds)
     return (
         # has shards that have FAILED status
         dataset_coordinator.get_bash_scripts_for_failed_shards()
@@ -650,6 +657,7 @@ def main():
 
     models = config['models']
     concepts = config['concepts']
+    conds = config['conditionings']
     settings = config['settings']
 
     slurm_partition = settings['slurm_partition']
@@ -672,7 +680,7 @@ def main():
                     model_config["decoder_hidden_states"] = False
 
                 # creates shard scripts for each model
-                if has_no_shard_scripts(dataset_folder, model_config, settings['max_samples_per_shard']):
+                if has_no_shard_scripts(dataset_folder, model_config, settings['max_samples_per_shard'], conds):
                     # - no scripts at all (never started)
                     print(f"Extracting embeddings for {concept} using {model_name}")
                     shard_scripts = extract_embeddings_for_dataset_with_model(
@@ -680,10 +688,11 @@ def main():
                         model_config, 
                         conda_env_name,
                         slurm_partition,
+                        conds=conds,
                         max_samples_per_shard=settings['max_samples_per_shard']
                     )
                 else:
-                    failed_jobs = get_failed_jobs(dataset_folder, model_config, settings['max_samples_per_shard'])
+                    failed_jobs = get_failed_jobs(dataset_folder, model_config, settings['max_samples_per_shard'], conds)
                     if failed_jobs:
                         # - all or some scripts have failed
                         scripts_str = ', '.join([x.name for x in failed_jobs])

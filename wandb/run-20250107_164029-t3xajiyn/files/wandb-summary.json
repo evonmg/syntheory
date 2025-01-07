@@ -1,0 +1,1 @@
+{"loss": 98.43431091308594, "accuracy": 0.1875, "primary_eval_metric": 0.1875, "f1": 0.1875, "primary": 0.1875, "epoch": 95.57333333333334, "early_stopping_score": 0.1875, "early_stopping_best_score": 0.1875, "early_stopping_boredom": 13, "_timestamp": 1736286034.0444937, "_runtime": 4.068934679031372, "_step": 112, "train_loss": 144.61309814453125, "_wandb": {"runtime": 2}}

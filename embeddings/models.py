@@ -10,6 +10,8 @@ from librosa.feature import melspectrogram, chroma_cqt, mfcc
 import jukemirlib
 from transformers import MusicgenForConditionalGeneration, AutoProcessor
 
+import torch
+
 SAMPLE_RATE_FEATS = 22050 # librosa default sample rate for handcrafted features
 
 DURATION_IN_SEC = 4.0
@@ -153,10 +155,10 @@ def audio_file_to_embedding_np_array(
         Model.MUSICGEN_DECODER_LM_L
     }:
         embedding: np.ndarray = extract_musicgen_decoder_lm_emb(
-            audio_file,
             processor,
             model,
-            extract_from_layer,
+            extract_from_layer=extract_from_layer,
+            audio_file=audio_file,
             hidden_states=decoder_hidden_states,
             meanpool=meanpool
         )
@@ -182,6 +184,19 @@ def text_prompt_to_embedding_np_array(
             processor,
             model,
             prompt
+        )
+    elif model_type in {
+        Model.MUSICGEN_DECODER_LM_S,
+        Model.MUSICGEN_DECODER_LM_M,
+        Model.MUSICGEN_DECODER_LM_L
+    }:
+        embedding: np.ndarray = extract_musicgen_decoder_lm_emb(
+            processor,
+            model,
+            extract_from_layer=extract_from_layer,
+            text_cond=prompt,
+            hidden_states=decoder_hidden_states,
+            meanpool=meanpool
         )
 
     else:
@@ -224,11 +239,11 @@ def extract_musicgen_audio_encoder_emb(
     else:
         return x.squeeze().detach().numpy()
 
-
+# edited
 def extract_musicgen_decoder_lm_emb(
-    audio_file: Path,
     processor: AutoProcessor,
     model: Union[MusicgenForConditionalGeneration],
+    audio_file: Optional[Path] = None,
     extract_from_layer: Optional[int] = None,
     text_cond: str = "",
     hidden_states: bool = True,
@@ -237,21 +252,36 @@ def extract_musicgen_decoder_lm_emb(
     """
     Extract embeddings from MusicGen Decoder LM
     """
-    # set up inputs
-    sampling_rate = model.config.audio_encoder.sampling_rate  # MusicGen uses 32000 Hz
 
-    audio = load_audio(str(audio_file), sampling_rate, DURATION_IN_SEC)
+    inputs = None
 
-    inputs = processor(
-        audio=audio,
-        text=text_cond,
-        sampling_rate=sampling_rate,
-        padding=True,
-        return_tensors="pt",
-    )
+    # audio conditioning
+    if audio_file is not None:
+        # set up inputs
+        sampling_rate = model.config.audio_encoder.sampling_rate  # MusicGen uses 32000 Hz
+        
+        audio = load_audio(str(audio_file), sampling_rate, DURATION_IN_SEC)
+
+        inputs = processor(
+            audio=audio,
+            text=text_cond,
+            sampling_rate=sampling_rate,
+            padding=True,
+            return_tensors="pt",
+        )
+    elif text_cond != "":
+        inputs = processor(
+            text=text_cond,
+            padding=True,
+            return_tensors="pt",
+        )
+        pad_token_id = model.generation_config.pad_token_id
+        decoder_input_ids = (
+            torch.ones((inputs.input_ids.shape[0] * model.decoder.num_codebooks, 1), dtype=torch.long) * pad_token_id
+        )
 
     # extract representations from decoder LM
-    out = model(**inputs, output_attentions=True, output_hidden_states=True)
+    out = model(**inputs, decoder_input_ids=decoder_input_ids, output_attentions=True, output_hidden_states=True)
 
     # output decoder hidden states
     if hidden_states:
@@ -282,8 +312,7 @@ def extract_musicgen_text_encoder_emb(
     processor: AutoProcessor, 
     model: Union[MusicgenForConditionalGeneration],
     text_cond: str, 
-    meanpool: bool = True,
-    max_length: int = 32
+    meanpool: bool = True
 ) -> np.ndarray:
     """
     Extract embeddings from MusicGen Text Encoder
@@ -293,18 +322,18 @@ def extract_musicgen_text_encoder_emb(
         text=text_cond,
         padding=True,
         truncation=True,
-        max_length=max_length,
         return_tensors="pt",
     )
 
     # text encoder
     text_encoder = model.get_text_encoder()
 
+    # embed tokens
     x = text_encoder.encoder.embed_tokens(inputs["input_ids"])
 
     # extract representations from text encoder
     for layer in text_encoder.encoder.block:
-        # get first item of tuple?
+        # get first item of tuple to get hidden states
         x = layer(x)[0]
 
     if meanpool:

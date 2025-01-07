@@ -3,8 +3,8 @@ models:
   # - HANDCRAFT
   # - MUSICGEN_AUDIO_ENCODER
   # - JUKEBOX
-  # - MUSICGEN_DECODER_LM_S
-  # - MUSICGEN_DECODER_LM_M
+  - MUSICGEN_DECODER_LM_S
+  - MUSICGEN_DECODER_LM_M
   # - MUSICGEN_DECODER_LM_L
   # - MELSPEC
   # - MFCC
@@ -20,6 +20,11 @@ concepts:
   # - scales
   # - intervals
   # - chord_progressions
+
+# Types of conditioning
+conditionings:
+  # - audio
+  - text
 
 # Global settings
 settings:

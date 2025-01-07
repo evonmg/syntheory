@@ -1,0 +1,22 @@
+wandb_version: 1
+
+batch_size:
+  value: 64
+concept:
+  value: notes
+data_standardization:
+  value: true
+dropout_p:
+  value: 0.25
+hidden_layer_sizes:
+  value: []
+l2_weight_decay:
+  value: null
+learning_rate:
+  value: 0.0001
+model_layer:
+  value: 0
+model_size:
+  value: L
+model_type:
+  value: MUSICGEN_TEXT_ENCODER

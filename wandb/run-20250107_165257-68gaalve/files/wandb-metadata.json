@@ -1,0 +1,213 @@
+{
+    "os": "Linux-5.14.0-284.11.1.el9_2_cifs.x86_64-x86_64-with-glibc2.34",
+    "python": "3.12.7",
+    "heartbeatAt": "2025-01-07T21:52:58.847837",
+    "startedAt": "2025-01-07T21:52:57.648524",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--sweep_id",
+        "8sajfjmw",
+        "--wandb_project",
+        "music-theory-text-encoder"
+    ],
+    "state": "running",
+    "program": "/oscar/home/gcma/syntheory/probe/main.py",
+    "codePathLocal": "probe/main.py",
+    "codePath": "probe/main.py",
+    "git": {
+        "remote": "git@github.com:evonmg/syntheory.git",
+        "commit": "46851846a6233a4ca5fda2ed2d5515df291e2ca3"
+    },
+    "email": "grace_ma@brown.edu",
+    "root": "/oscar/home/gcma/syntheory",
+    "host": "gpu1402.oscar.ccv.brown.edu",
+    "username": "gcma",
+    "executable": "/users/gcma/miniconda3/envs/syntheory/bin/python",
+    "cpu_count": 32,
+    "cpu_count_logical": 32,
+    "cpu_freq": {
+        "current": 2687.5004375,
+        "min": 1000.0,
+        "max": 3700.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2899.998,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2900.002,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2900.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2899.997,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2899.998,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2899.999,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2900.001,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 3300.018,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        },
+        {
+            "current": 2600.0,
+            "min": 1000.0,
+            "max": 3700.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 187.77513122558594,
+            "used": 8.144489288330078
+        }
+    },
+    "gpu": "NVIDIA TITAN RTX",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA TITAN RTX",
+            "memory_total": 25769803776
+        }
+    ],
+    "memory": {
+        "total": 375.55026626586914
+    }
+}

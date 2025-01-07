@@ -1,0 +1,213 @@
+{
+    "os": "Linux-5.14.0-284.11.1.el9_2_cifs.x86_64-x86_64-with-glibc2.34",
+    "python": "3.12.7",
+    "heartbeatAt": "2025-01-07T21:42:46.790034",
+    "startedAt": "2025-01-07T21:42:45.266833",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--sweep_id",
+        "8sajfjmw",
+        "--wandb_project",
+        "music-theory-text-encoder"
+    ],
+    "state": "running",
+    "program": "/oscar/home/gcma/syntheory/probe/main.py",
+    "codePathLocal": "probe/main.py",
+    "codePath": "probe/main.py",
+    "git": {
+        "remote": "git@github.com:evonmg/syntheory.git",
+        "commit": "46851846a6233a4ca5fda2ed2d5515df291e2ca3"
+    },
+    "email": "grace_ma@brown.edu",
+    "root": "/oscar/home/gcma/syntheory",
+    "host": "gpu2003.oscar.ccv.brown.edu",
+    "username": "gcma",
+    "executable": "/users/gcma/miniconda3/envs/syntheory/bin/python",
+    "cpu_count": 32,
+    "cpu_count_logical": 32,
+    "cpu_freq": {
+        "current": 2978.3955625,
+        "min": 1200.0,
+        "max": 3900.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3266.799,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3102.236,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3176.919,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3169.765,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3195.227,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3177.956,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3203.533,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3342.788,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3500.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3499.999,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3498.841,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3500.007,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2800.0,
+            "min": 1200.0,
+            "max": 3900.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 187.77203750610352,
+            "used": 8.198192596435547
+        }
+    },
+    "gpu": "Quadro RTX 6000",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "Quadro RTX 6000",
+            "memory_total": 25769803776
+        }
+    ],
+    "memory": {
+        "total": 375.5440788269043
+    }
+}

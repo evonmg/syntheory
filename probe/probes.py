@@ -219,7 +219,6 @@ class ProbeExperiment:
         # load the zarr, read only mode
         data = zarr.open(embeddings_zarr_filepath, mode="r")
 
-        # training on text encoder, it is saying that this is false idk
         self.is_foundation_model_layers = len(data.shape) == 3
         self.embeddings = data
 
