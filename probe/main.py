@@ -52,6 +52,9 @@ def get_all_embedding_exports(
         elif "MUSICGEN_AUDIO_ENCODER" in model_name:
             model_size = "L"
             model_type = "MUSICGEN_AUDIO_ENCODER"
+        elif "MUSICGEN_TEXT_ENCODER" in model_name:
+            model_size = "L"
+            model_type = "MUSICGEN_TEXT_ENCODER"
         else:
             # handcrafted features, default to L
             model_size = "L"
@@ -93,7 +96,7 @@ def start(
     # dataset and experiment configuration
     probe_config = wandb.config
 
-    # model type: [ JUKEBOX | MUSICGEN_DECODER | MUSICGEN_AUDIO_ENCODER | MFCC | CHROMA | MELSPEC | HANDCRAFT ]
+    # model type: [ JUKEBOX | MUSICGEN_DECODER | MUSICGEN_AUDIO_ENCODER | MUSICGEN_TEXT_ENCODER | MFCC | CHROMA | MELSPEC | HANDCRAFT ]
     model_type = probe_config.model_type
     # model size: [S | M | L]
     model_size = probe_config.model_size
@@ -147,8 +150,11 @@ def start(
     # can be: 'multiclass' or 'regression'
     output_type = "regression" if is_regression else "multiclass"
 
+    # 12
     wandb.config["num_outputs"] = num_outputs
+    # multiclass
     wandb.config["output_type"] = output_type
+    # root note pitch class
     wandb.config["label_column_name"] = label_column_name
 
     cfg = ProbeExperimentConfig(

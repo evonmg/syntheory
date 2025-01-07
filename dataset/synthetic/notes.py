@@ -131,23 +131,23 @@ def row_processor(
     # examples of text prompts for notes:
     # Generate the note C#0, C-sharp 0, D-flat 0
     # TODO: come up with a way to not generate all the instruments with the text prompts specifically
-    prompts = [f"Generate the note {note_name}{octave}"]
+    prompts = [f"{note_name}{octave}"]
     if note_name[-1] == "#":
-        prompts.append(f"Generate the note {note_name[0]} sharp {octave}")
+        prompts.append(f"{note_name[0]} sharp {octave}")
 
         # this is messing up the csv reading - somehow need to support variable lengths
-        # letters = string.ascii_uppercase
-        # index = letters.index(note_name[0])
-        # prompts.append(f"{letters[(index+1)%7]} flat {octave}")
+        letters = string.ascii_uppercase
+        index = letters.index(note_name[0])
+        prompts.append(f"{letters[(index+1)%7]} flat {octave}")
     else:
-        prompts.append(f"Generate the note {note_name[0]} natural {octave}")
+        prompts.append(f"{note_name[0]} natural {octave}")
 
-    # create csv file
-    # writes this for every instrument which is not good
-    # checks if instrument == first instrument? in which case it only gets written once for all instruments
-    with open(text_file_path, "a") as f:
-        writer = csv.writer(f)
-        writer.writerow(prompts)
+    # # create csv file
+    # # writes this for every instrument which is not good
+    # # checks if instrument == first instrument? in which case it only gets written once for all instruments
+    # with open(text_file_path, "a") as f:
+    #     writer = csv.writer(f)
+    #     writer.writerow(prompts)
 
     # record this row in the csv
     return [
@@ -165,6 +165,7 @@ def row_processor(
                 "midi_category": midi_category,
                 "midi_file_path": str(midi_file_path.relative_to(dataset_path)),
                 "synth_file_path": str(synth_file_path.relative_to(dataset_path)),
+                "prompts": prompts,
                 # e.g. TimGM6mb.sf2
                 "synth_soundfont": DEFAULT_SOUNDFONT_LOCATION.parts[-1],
                 "is_silent": is_wave_silent(synth_file_path),

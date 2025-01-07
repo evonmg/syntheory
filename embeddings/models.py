@@ -282,7 +282,8 @@ def extract_musicgen_text_encoder_emb(
     processor: AutoProcessor, 
     model: Union[MusicgenForConditionalGeneration],
     text_cond: str, 
-    meanpool: bool = True
+    meanpool: bool = True,
+    max_length: int = 32
 ) -> np.ndarray:
     """
     Extract embeddings from MusicGen Text Encoder
@@ -291,6 +292,8 @@ def extract_musicgen_text_encoder_emb(
     inputs = processor(
         text=text_cond,
         padding=True,
+        truncation=True,
+        max_length=max_length,
         return_tensors="pt",
     )
 
@@ -305,6 +308,6 @@ def extract_musicgen_text_encoder_emb(
         x = layer(x)[0]
 
     if meanpool:
-        return x.mean(axis=2).squeeze().detach().numpy()
+        return x.mean(axis=1).squeeze().detach().numpy()
     else:
         return x.squeeze().detach().numpy()

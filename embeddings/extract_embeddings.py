@@ -18,6 +18,8 @@ from config import OUTPUT_DIR, load_config
 from embeddings.config_checksum import compute_checksum
 from embeddings.models import audio_file_to_embedding_np_array, Model, load_musicgen_model, text_prompt_to_embedding_np_array
 
+import ast
+
 class ShardStatus(Enum):
     DONE = 1
     FAIL = 2
@@ -84,16 +86,10 @@ class DatasetEmbeddingInformation:
         self.model_name = model_config["model_name"]
         self.max_samples_per_shard = max_samples_per_shard
         self.dataset_name = self.dataset_folder.parts[-1]
-        # self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
-        # edited
-
-        if self.model_name == "MUSICGEN_TEXT_ENCODER":
-            self.dataset_info_df = pd.read_csv(self.dataset_folder / "prompts.csv")
-        else:
-            self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
-
-        # finish edit
+        self.dataset_info_df = pd.read_csv(self.dataset_folder / "info.csv")
         
+        # TODO: fix
+        # or wait maybe it's fine because the prompts dataset is pretty small
         self.num_total_samples = self.dataset_info_df.shape[0]
         
         self.status_folder = self.dataset_folder / (
@@ -191,10 +187,12 @@ class DatasetEmbeddingInformation:
 
         embedding = None
 
+        first_sample = self.dataset_info_df.iloc[0].to_dict()
+
         # if model we're working with is the text encoder, pass through text input only
         if (model_type == Model.MUSICGEN_TEXT_ENCODER):
             # do only 1 extraction just to get the dimensions
-            prompt = self.dataset_info_df.iloc[0][0]
+            prompt = first_sample["prompts"]
         
             embedding = get_text_embedding_from_model_using_config(
                 prompt,
@@ -204,7 +202,6 @@ class DatasetEmbeddingInformation:
             )
         else:
             # embeddings file does not yet exist, initialize it to all zeros
-            first_sample = self.dataset_info_df.iloc[0].to_dict()
             audio_filepath = get_audio_file_path_from_sample_info(first_sample)
 
             # do only 1 extraction just to get the dimensions
@@ -216,6 +213,8 @@ class DatasetEmbeddingInformation:
             )
         
         embeddings_shape = embedding.shape
+
+        print(f"initial extraction shape: {embeddings_shape}")
 
         zarr_file_sync = zarr.ProcessSynchronizer(
             str(self.zarr_sync_path.absolute())
@@ -362,7 +361,8 @@ class DatasetEmbeddingInformation:
                         "dataset_shard": shard_idx,
                         # TODO: i think i can add 2 text prompts? according to the hunggingface docs
                         # add string text prompt - for now, just the first one per concept. later TODO: fix either this or the dataset generation to create multiple rows
-                        "text_prompt": self.dataset_info_df.values.tolist(),
+                        "text_prompt": ast.literal_eval(self.dataset_info_df.at[i, "prompts"]),
+
                         # retain full original sample information
                         "details": sample_info,
                     }
@@ -380,7 +380,7 @@ class DatasetEmbeddingInformation:
                         # retain full original sample information
                         "details": sample_info,
                     }
-                    row_data.append(row)
+                row_data.append(row)
 
         embedding_info_df = pd.json_normalize(row_data)
         embedding_info_df.to_csv(self.embeddings_info_file)
@@ -433,6 +433,11 @@ def extract_shard(
         processor, model = None, None
 
     zarr_file = embedding_info.load_zarr_file()
+
+    print(f"extract shard zarr file shape: {zarr_file.shape}")
+    emb_shape = zarr_file.shape[1]
+    print(f"emb_shape: {emb_shape}")
+
     if not zarr_file:
         raise RuntimeError(f"Embeddings file for {dataset_folder_name} ({model_config_checksum}) did not exist.")
 
@@ -470,13 +475,30 @@ def extract_shard(
                         text_prompt, model_config, processor, model
                     )
 
+                # truncate/pad embedding vec to the first embedding
+                # if embedding_vec.shape[0] > emb_shape:
+                #     embedding_vec = embedding_vec[:emb_shape]
+                # elif embedding_vec.shape[0] < emb_shape:
+                #     padding = np.zeros(emb_shape - embedding_vec.shape[0])  # pad with zeros
+                #     embedding_vec = np.concatenate(embedding_vec, padding)
+
+                print(f"extract shard embedding shape: {embedding_vec.shape}")
+
                 zarr_file[sample_idx] = embedding_vec
 
-                print(
-                    f"Shard: {dataset_shard}: Finished extracting idx: {sample_idx}, "
-                    f"file: {audio_file_path}, for dataset: {dataset_folder_name}, "
-                    f"with model config checksum: {model_config_checksum} ({model_type})"
-                )
+                # audio files
+                if "audio_file_path" in sample_info:
+                    print(
+                        f"Shard: {dataset_shard}: Finished extracting idx: {sample_idx}, "
+                        f"file: {audio_file_path}, for dataset: {dataset_folder_name}, "
+                        f"with model config checksum: {model_config_checksum} ({model_type})"
+                    )
+                elif "text_prompt" in sample_info:
+                    print(
+                        f"Shard: {dataset_shard}: Finished extracting idx: {sample_idx}, "
+                        f"prompt: {text_prompt}, for dataset: {dataset_folder_name}, "
+                        f"with model config checksum: {model_config_checksum} ({model_type})"
+                    )
                 # from zarr docs: "files are automatically closed whenever an array is modified."
 
     except Exception as e:
