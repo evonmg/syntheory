@@ -57,6 +57,22 @@ def get_all_midi_note_values() -> Iterator[int]:
     # return MIDI notes from 0 to 107. C0 -> B8
     return iter(range(108))
 
+def get_all_text_prompts(note_name: str, octave: int) -> Iterator[str]:
+    prompts = [f"{note_name}{octave}"]
+    if note_name[-1] == "#":
+        prompts.append(f"{note_name[0]} sharp {octave}")
+
+        letters = string.ascii_uppercase
+        index = letters.index(note_name[0])
+        prompts.append(f"{letters[(index+1)%7]} flat {octave}")
+    else:
+        prompts.append(f"{note_name[0]} natural {octave}")
+
+    prompts.append(f"Generate the note {note_name}{octave}")
+    prompts.append(f"{note_name}{octave} note")
+
+    return prompts
+
 
 def get_row_iterator(
     midi_note_values: Iterable[int], instrument_infos: Iterable[Dict[str, Any]]
@@ -103,10 +119,6 @@ def row_processor(
         dataset_path
         / f"{midi_note_val}_{register}_{note_name}_{midi_program_num}_{cleaned_name}.wav"
     )
-    # text prompt location
-    text_file_path = (
-        dataset_path / "prompts.csv"
-    )
 
     note_midi = get_note_midi(midi_note_val)
     midi_file = create_midi_file()
@@ -129,18 +141,22 @@ def row_processor(
 
     # create rows of text prompts
     # examples of text prompts for notes:
-    # Generate the note C#0, C-sharp 0, D-flat 0
+    # Generate the note C#0, C-sharp 0, D-flat 0, Generate the note C#0, C#0 note
     # TODO: come up with a way to not generate all the instruments with the text prompts specifically
-    prompts = [f"{note_name}{octave}"]
-    if note_name[-1] == "#":
-        prompts.append(f"{note_name[0]} sharp {octave}")
+    # TODO: come up with a way to also ignore octave info...
+    # TODO: cry
+    # prompts = [f"{note_name}{octave}"]
+    # if note_name[-1] == "#":
+    #     prompts.append(f"{note_name[0]} sharp {octave}")
 
-        # this is messing up the csv reading - somehow need to support variable lengths
-        letters = string.ascii_uppercase
-        index = letters.index(note_name[0])
-        prompts.append(f"{letters[(index+1)%7]} flat {octave}")
-    else:
-        prompts.append(f"{note_name[0]} natural {octave}")
+    #     letters = string.ascii_uppercase
+    #     index = letters.index(note_name[0])
+    #     prompts.append(f"{letters[(index+1)%7]} flat {octave}")
+    # else:
+    #     prompts.append(f"{note_name[0]} natural {octave}")
+
+    # prompts.append(f"Generate the note {note_name}{octave}")
+    # prompts.append(f"{note_name}{octave} note")
 
     # # create csv file
     # # writes this for every instrument which is not good
@@ -165,7 +181,6 @@ def row_processor(
                 "midi_category": midi_category,
                 "midi_file_path": str(midi_file_path.relative_to(dataset_path)),
                 "synth_file_path": str(synth_file_path.relative_to(dataset_path)),
-                "prompts": prompts,
                 # e.g. TimGM6mb.sf2
                 "synth_soundfont": DEFAULT_SOUNDFONT_LOCATION.parts[-1],
                 "is_silent": is_wave_silent(synth_file_path),
@@ -173,6 +188,54 @@ def row_processor(
         )
     ]
 
+def get_prompt_row_iterator(
+    midi_note_values: Iterable[int]
+) -> Iterator[DatasetRowDescription]:
+    idx = 0
+    for midi_note_val in midi_note_values:
+        note_name = get_note_name_from_pitch_class(midi_note_val % 12)
+        register = get_register(midi_note_val)
+        prompts = get_all_text_prompts(note_name, midi_note_val // 12)
+        for prompt in prompts:
+            yield (
+                idx,
+                {
+                    "midi_note_val": midi_note_val,
+                    "register": register,
+                    "note_name": note_name,
+                    "prompt": prompt
+                },
+            )
+            idx += 1
+
+def prompt_row_processor(
+    dataset_path: Path, row: DatasetRowDescription
+) -> List[DatasetRowDescription]:
+    row_idx, row_info = row
+
+    midi_note_val = row_info["midi_note_val"]
+    note_name = row_info["note_name"]
+    register = row_info["register"]
+    prompt = row_info["prompt"]
+
+    octave = midi_note_val // 12
+    root_note_pitch_class = midi_note_val % 12
+
+    # record this row in the csv
+    return [
+        (
+            row_idx,
+            {
+                "root_note_name": note_name,
+                "root_note_pitch_class": root_note_pitch_class,
+                "octave": octave,
+                "root_note_is_accidental": note_name.endswith("#"),
+                "register": register,
+                "midi_note_val": midi_note_val,
+                "prompt": prompt
+            },
+        )
+    ]
 
 if __name__ == "__main__":
     """This requires 14.02 GB.
@@ -185,29 +248,43 @@ if __name__ == "__main__":
     """
     # configure the dataset
     dataset_name = "notes"
-    dataset_writer = DatasetWriter(
+    # dataset_writer = DatasetWriter(
+    #     dataset_name=dataset_name,
+    #     save_to_parent_directory=OUTPUT_DIR,
+    #     row_iterator=get_row_iterator(
+    #         get_all_midi_note_values(),
+    #         get_instruments(
+    #             ignore_atonal=True,
+    #             ignore_polyphonic=True,
+    #             ignore_highly_articulate=True,
+    #             take_only_first_category=False,
+    #         ),
+    #     ),
+    #     row_processor=row_processor,
+    #     max_processes=8,
+    # )
+
+    # # check the resulting info csv / dataframe
+    # dataset_df = dataset_writer.create_dataset()
+
+    # # warn of any silent samples
+    # num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
+    # if num_silent_samples > 0:
+    #     warnings.warn(
+    #         f"In the dataset, there were {num_silent_samples} silent samples.",
+    #         UserWarning,
+    #     )
+
+    # create prompts dataset
+    prompts_writer = DatasetWriter(
         dataset_name=dataset_name,
         save_to_parent_directory=OUTPUT_DIR,
-        row_iterator=get_row_iterator(
-            get_all_midi_note_values(),
-            get_instruments(
-                ignore_atonal=True,
-                ignore_polyphonic=True,
-                ignore_highly_articulate=True,
-                take_only_first_category=False,
-            ),
+        row_iterator=get_prompt_row_iterator(
+            get_all_midi_note_values()
         ),
-        row_processor=row_processor,
+        row_processor=prompt_row_processor,
         max_processes=8,
+        is_prompts=True
     )
 
-    # check the resulting info csv / dataframe
-    dataset_df = dataset_writer.create_dataset()
-
-    # warn of any silent samples
-    num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
-    if num_silent_samples > 0:
-        warnings.warn(
-            f"In the dataset, there were {num_silent_samples} silent samples.",
-            UserWarning,
-        )
+    prompts_df = prompts_writer.create_dataset()

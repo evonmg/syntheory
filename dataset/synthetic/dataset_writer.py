@@ -25,6 +25,7 @@ class DatasetWriter:
         ],
         write_with_770_permissions: bool = True,
         max_processes: int = 4,
+        is_prompts: bool = False
     ) -> None:
         """The constructor of SynTheory dataset writer.
 
@@ -41,6 +42,7 @@ class DatasetWriter:
                 770. This can be useful when working in a shared cluster environment.
             max_processes: The maximum number of processes to use when producing the dataset. The dataset
                 is constructed using Python's multiprocess pool.
+            is_prompts: If true, generates a prompts csv file
         """
         if not isinstance(save_to_parent_directory, Path):
             raise ValueError(
@@ -53,7 +55,12 @@ class DatasetWriter:
         dataset_path = self.parent_directory / dataset_name
 
         self.dataset_path = dataset_path
-        self.info_csv_filepath = dataset_path / "info.csv"
+
+        if is_prompts:
+            self.info_csv_filepath = dataset_path / "prompts.csv"
+        else:
+            self.info_csv_filepath = dataset_path / "info.csv"
+
         self.write_with_770_permissions = write_with_770_permissions
         self.row_iterator = row_iterator
         self.row_processor = row_processor
@@ -73,6 +80,7 @@ class DatasetWriter:
 
         Returns: A pandas dataframe that contains all the generated samples.
         """
+        # TODO: fix this - can't generate both audio files and text prompts at the same time
         if self.dataset_path.exists():
             raise RuntimeError(
                 f"A dataset folder at this location already exists! Check: {self.dataset_path}"

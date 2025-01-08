@@ -19,6 +19,11 @@ CONCEPT_LABELS = {
     # "tempos": [(161, "bpm")],
 }
 
+CONDS = {
+    "text",
+    #"audio",
+}
+
 
 # hyperparameter grid used in Jukemir paper
 HYPERPARAMS = {

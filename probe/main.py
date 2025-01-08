@@ -9,7 +9,7 @@ import wandb
 
 from config import OUTPUT_DIR
 from probe.probes import ProbeExperiment, ProbeExperimentConfig
-from probe.probe_config import CONCEPT_LABELS
+from probe.probe_config import CONCEPT_LABELS, CONDS
 
 
 def get_all_embedding_exports(
@@ -25,7 +25,12 @@ def get_all_embedding_exports(
 
     """
     base_path = base_path_parent / concept_name
-    dataset_info = base_path / "info.csv"
+
+    # TODO: fix so that we can do both text and audio
+    if "text" in CONDS:
+        dataset_info = base_path / "prompts.csv"
+    elif "audio" in CONDS:
+        dataset_info = base_path / "info.csv"
     zarr_files = list(base_path.glob("*.zarr"))
     model_embeddings_infos = []
     for z in zarr_files:
