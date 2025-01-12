@@ -22,6 +22,38 @@ import string
 
 _REGISTERS = (3, 6, 9)
 
+TEMPLATES = [
+    "{note}{octave}",
+    "Generate the note {note}{octave}",
+    "Play the note {note}{octave}",
+    "Produce the note {note}{octave}",
+    "{note}{octave} note",
+    "The note {note}{octave}",
+    "Note of {note}{octave}",
+    "Produce the tone {note}{octave}",
+    "Generate a sound at the pitch {note}{octave}",
+    "Produce the musical note {note}{octave}",
+    "Create the frequency of the note {note}{octave}",
+    "Generate the pitch corresponding to {note}{octave}",
+    "Play a {note}{octave}",
+    "Generate a {note}{octave}",
+    "Produce a {note}{octave}",
+    "Create a {note}{octave}",
+    "Create the pitch {note}{octave}",
+    "Produce a note at the pitch {note}{octave}",
+    "Generate the note represented by {note}{octave}",
+    "Bring forth the sound of {note}{octave}",
+    "Sing the note {note}{octave}",
+    "Perform {note}{octave} as a note",
+    "Generate audio for the pitch {note}{octave}",
+    "Generate the auditory frequency of {note}{octave}",
+    "Generate a musical pitch at {note}{octave}",
+    "Perform a clear {note}{octave}",
+    "Sustain the note {note}{octave}",
+    "Provide an example of the frequency {note}{octave}",
+    "Generate {note}{octave} as played by a violin",
+    "Produce {note}{octave} as if sung by a human voice",
+]
 
 def get_note_midi(
     midi_note_val: int,
@@ -57,19 +89,65 @@ def get_all_midi_note_values() -> Iterator[int]:
     # return MIDI notes from 0 to 107. C0 -> B8
     return iter(range(108))
 
-def get_all_text_prompts(note_name: str, octave: int) -> Iterator[str]:
-    prompts = [f"{note_name}{octave}"]
+from typing import Iterator, List
+import string
+
+from typing import List
+import string
+
+def get_all_text_prompts(note_name: str, octave: int) -> List[str]:    
+    # Generate prompts for the given note name and octave
+    prompts = [template.format(note=note_name, octave=octave) for template in TEMPLATES]
+    prompts.extend([template.format(note=note_name, octave=f" at octave {octave}") for template in TEMPLATES])
+
+    # Handle sharp, flat, and natural variations
     if note_name[-1] == "#":
-        prompts.append(f"{note_name[0]} sharp {octave}")
+        sharp_note = note_name[0]
+        sharp_prompts = [
+            template.format(note=f"{sharp_note} sharp ", octave=octave) for template in TEMPLATES
+        ]
+        sharp_prompts.extend([
+            template.format(note=f"{sharp_note} sharp", octave=f" at octave {octave}") for template in TEMPLATES
+        ])
+        sharp_prompts.extend([
+            template.format(note=f"{sharp_note}-sharp ", octave=octave) for template in TEMPLATES
+        ])
+        sharp_prompts.extend([
+            template.format(note=f"{sharp_note}-sharp", octave=f" at octave {octave}") for template in TEMPLATES
+        ])
+        prompts.extend(sharp_prompts)
 
         letters = string.ascii_uppercase
-        index = letters.index(note_name[0])
-        prompts.append(f"{letters[(index+1)%7]} flat {octave}")
+        index = letters.index(sharp_note)
+        flat_note = letters[(index + 1) % 7]
+        flat_prompts = [
+            template.format(note=f"{flat_note} flat ", octave=octave) for template in TEMPLATES
+        ]
+        flat_prompts.extend([
+            template.format(note=f"{flat_note} flat", octave=f" at octave {octave}") for template in TEMPLATES
+        ])
+        flat_prompts.extend([
+            template.format(note=f"{flat_note}-flat ", octave=octave) for template in TEMPLATES
+        ])
+        flat_prompts.extend([
+            template.format(note=f"{flat_note}-flat", octave=f" at octave {octave}") for template in TEMPLATES
+        ])
+        prompts.extend(flat_prompts)
     else:
-        prompts.append(f"{note_name[0]} natural {octave}")
-
-    prompts.append(f"Generate the note {note_name}{octave}")
-    prompts.append(f"{note_name}{octave} note")
+        natural_note = note_name[0]
+        natural_prompts = [
+            template.format(note=f"{natural_note} natural ", octave=octave) for template in TEMPLATES
+        ]
+        natural_prompts.extend([
+            template.format(note=f"{natural_note} natural", octave=f" at octave {octave}") for template in TEMPLATES
+        ])
+        natural_prompts.extend([
+            template.format(note=f"{natural_note}-natural ", octave=octave) for template in TEMPLATES
+        ])
+        natural_prompts.extend([
+            template.format(note=f"{natural_note}-natural", octave=f" at octave {octave}") for template in TEMPLATES
+        ])
+        prompts.extend(natural_prompts)
 
     return prompts
 
@@ -138,32 +216,6 @@ def row_processor(
 
     octave = midi_note_val // 12
     root_note_pitch_class = midi_note_val % 12
-
-    # create rows of text prompts
-    # examples of text prompts for notes:
-    # Generate the note C#0, C-sharp 0, D-flat 0, Generate the note C#0, C#0 note
-    # TODO: come up with a way to not generate all the instruments with the text prompts specifically
-    # TODO: come up with a way to also ignore octave info...
-    # TODO: cry
-    # prompts = [f"{note_name}{octave}"]
-    # if note_name[-1] == "#":
-    #     prompts.append(f"{note_name[0]} sharp {octave}")
-
-    #     letters = string.ascii_uppercase
-    #     index = letters.index(note_name[0])
-    #     prompts.append(f"{letters[(index+1)%7]} flat {octave}")
-    # else:
-    #     prompts.append(f"{note_name[0]} natural {octave}")
-
-    # prompts.append(f"Generate the note {note_name}{octave}")
-    # prompts.append(f"{note_name}{octave} note")
-
-    # # create csv file
-    # # writes this for every instrument which is not good
-    # # checks if instrument == first instrument? in which case it only gets written once for all instruments
-    # with open(text_file_path, "a") as f:
-    #     writer = csv.writer(f)
-    #     writer.writerow(prompts)
 
     # record this row in the csv
     return [

@@ -4,12 +4,12 @@
 #SBATCH -n 4
 #SBATCH --mem=63G
 #SBATCH -t 24:00:00
-#SBATCH -J probe_experiment_g86kf1i4
-#SBATCH -e logs/probe/g86kf1i4/probe_experiment_g86kf1i4-%j.err
-#SBATCH -o logs/probe/g86kf1i4/probe_experiment_g86kf1i4-%j.out
+#SBATCH -J probe_experiment_c8mw35tf
+#SBATCH -e logs/probe/c8mw35tf/probe_experiment_c8mw35tf-%j.err
+#SBATCH -o logs/probe/c8mw35tf/probe_experiment_c8mw35tf-%j.out
 
 # Activate virtual environment
 conda activate syntheory
 
 # Run the script
-python probe/main.py --sweep_id g86kf1i4 --wandb_project music-theory-musicgen
+python probe/main.py --sweep_id c8mw35tf --wandb_project music-theory-musicgen

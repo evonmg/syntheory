@@ -164,3 +164,5 @@ logs
 data/*
 .ruff_cache
 .DS_Store
+
+wandb/
