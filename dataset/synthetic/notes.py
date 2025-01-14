@@ -25,34 +25,24 @@ _REGISTERS = (3, 6, 9)
 TEMPLATES = [
     "{note}{octave}",
     "Generate the note {note}{octave}",
-    "Play the note {note}{octave}",
+    "Play the note {note} at octave {octave}",
     "Produce the note {note}{octave}",
     "{note}{octave} note",
-    "The note {note}{octave}",
+    "The note {note} with octave {octave}",
     "Note of {note}{octave}",
     "Produce the tone {note}{octave}",
-    "Generate a sound at the pitch {note}{octave}",
+    "Generate a sound at the pitch {note} at the octave of {octave}",
     "Produce the musical note {note}{octave}",
-    "Create the frequency of the note {note}{octave}",
+    "Create the frequency of the note {note} at octave {octave}",
     "Generate the pitch corresponding to {note}{octave}",
-    "Play a {note}{octave}",
-    "Generate a {note}{octave}",
-    "Produce a {note}{octave}",
-    "Create a {note}{octave}",
     "Create the pitch {note}{octave}",
-    "Produce a note at the pitch {note}{octave}",
     "Generate the note represented by {note}{octave}",
-    "Bring forth the sound of {note}{octave}",
-    "Sing the note {note}{octave}",
+    "Sing the note {note} at the octave {octave}",
     "Perform {note}{octave} as a note",
-    "Generate audio for the pitch {note}{octave}",
     "Generate the auditory frequency of {note}{octave}",
-    "Generate a musical pitch at {note}{octave}",
-    "Perform a clear {note}{octave}",
+    "Perform a clear {note} with octave {octave}",
     "Sustain the note {note}{octave}",
-    "Provide an example of the frequency {note}{octave}",
-    "Generate {note}{octave} as played by a violin",
-    "Produce {note}{octave} as if sung by a human voice",
+    "Play a {note}{octave} on the piano",
 ]
 
 def get_note_midi(
@@ -98,22 +88,15 @@ import string
 def get_all_text_prompts(note_name: str, octave: int) -> List[str]:    
     # Generate prompts for the given note name and octave
     prompts = [template.format(note=note_name, octave=octave) for template in TEMPLATES]
-    prompts.extend([template.format(note=note_name, octave=f" at octave {octave}") for template in TEMPLATES])
 
     # Handle sharp, flat, and natural variations
     if note_name[-1] == "#":
         sharp_note = note_name[0]
         sharp_prompts = [
-            template.format(note=f"{sharp_note} sharp ", octave=octave) for template in TEMPLATES
+            template.format(note=f"{sharp_note} sharp", octave=f" {octave}") for template in TEMPLATES
         ]
         sharp_prompts.extend([
-            template.format(note=f"{sharp_note} sharp", octave=f" at octave {octave}") for template in TEMPLATES
-        ])
-        sharp_prompts.extend([
-            template.format(note=f"{sharp_note}-sharp ", octave=octave) for template in TEMPLATES
-        ])
-        sharp_prompts.extend([
-            template.format(note=f"{sharp_note}-sharp", octave=f" at octave {octave}") for template in TEMPLATES
+            template.format(note=f"{sharp_note}-sharp", octave=f" {octave}") for template in TEMPLATES
         ])
         prompts.extend(sharp_prompts)
 
@@ -121,31 +104,19 @@ def get_all_text_prompts(note_name: str, octave: int) -> List[str]:
         index = letters.index(sharp_note)
         flat_note = letters[(index + 1) % 7]
         flat_prompts = [
-            template.format(note=f"{flat_note} flat ", octave=octave) for template in TEMPLATES
+            template.format(note=f"{flat_note} flat", octave=f" {octave}") for template in TEMPLATES
         ]
         flat_prompts.extend([
-            template.format(note=f"{flat_note} flat", octave=f" at octave {octave}") for template in TEMPLATES
-        ])
-        flat_prompts.extend([
-            template.format(note=f"{flat_note}-flat ", octave=octave) for template in TEMPLATES
-        ])
-        flat_prompts.extend([
-            template.format(note=f"{flat_note}-flat", octave=f" at octave {octave}") for template in TEMPLATES
+            template.format(note=f"{flat_note}-flat", octave=f" {octave}") for template in TEMPLATES
         ])
         prompts.extend(flat_prompts)
     else:
         natural_note = note_name[0]
         natural_prompts = [
-            template.format(note=f"{natural_note} natural ", octave=octave) for template in TEMPLATES
+            template.format(note=f"{natural_note} natural", octave=f" {octave}") for template in TEMPLATES
         ]
         natural_prompts.extend([
-            template.format(note=f"{natural_note} natural", octave=f" at octave {octave}") for template in TEMPLATES
-        ])
-        natural_prompts.extend([
-            template.format(note=f"{natural_note}-natural ", octave=octave) for template in TEMPLATES
-        ])
-        natural_prompts.extend([
-            template.format(note=f"{natural_note}-natural", octave=f" at octave {octave}") for template in TEMPLATES
+            template.format(note=f"{natural_note}-natural", octave=f" {octave}") for template in TEMPLATES
         ])
         prompts.extend(natural_prompts)
 
