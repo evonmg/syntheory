@@ -15,8 +15,8 @@ models:
 concepts:
   # - time_signatures
   # - tempos
-  - notes
-  # - chords
+  # - notes
+  - chords
   # - scales
   # - intervals
   # - chord_progressions

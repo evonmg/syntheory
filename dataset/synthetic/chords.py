@@ -1,3 +1,4 @@
+import string
 import warnings
 from pathlib import Path
 from typing import Optional, List, Iterator, Iterable, Dict, Any, Tuple
@@ -177,6 +178,155 @@ def row_processor(
         )
     ]
 
+# Adds all of the chord configurations into a DatasetRowDescription
+def get_row_iterator(
+    chords: Iterable[Tuple[int, str]], instruments: List[Dict[str, Any]]
+) -> Iterator[DatasetRowDescription]:
+    # TODO: add text prompts
+    idx = 0
+    for root_note_pitch_class, chord_type in chords:
+        note_name = get_note_name_from_pitch_class(root_note_pitch_class)
+        for inversion in [None, "6", "64"]:
+            for instrument_info in instruments:
+                yield (
+                    idx,
+                    {
+                        "instrument_info": instrument_info,
+                        "inversion": inversion,
+                        "note_name": note_name,
+                        "root_note_pitch_class": root_note_pitch_class,
+                        "chord_type": chord_type,
+                    },
+                )
+                idx += 1
+
+# generates the actual prompts given the info
+def generate_text_prompts(note_name: str, chord_type: str, inversion: str | None):
+    prompts = []
+
+    prompts.append(f"{note_name} {chord_type}{f" {inversion}" if inversion is not None else ''}")
+    prompts.append(f"Generate a {note_name} {chord_type}{f" {inversion}" if inversion is not None else ''} chord")
+    prompts.append(f"The chord {note_name} {chord_type}{f" {inversion}" if inversion is not None else ''}")
+
+    if inversion is None:
+        prompts.append(f"Root position {note_name} {chord_type} chord")
+        prompts.append(f"Generate a {note_name} {chord_type} chord in root position")
+        prompts.append(f"The chord {note_name} {chord_type} in root position")
+    else:
+        prompts.append(f"{note_name} {chord_type} in the {inversion} inversion")
+        if inversion == "6":
+            prompts.append(f"1st inversion {note_name} {chord_type} chord")
+            prompts.append(f"Generate a {note_name} {chord_type} chord in 1st inversion")
+            prompts.append(f"The chord {note_name} {chord_type} in 1st inversion")
+        elif inversion == "64":
+            prompts.append(f"2nd inversion {note_name} {chord_type} chord")
+            prompts.append(f"Generate a {note_name} {chord_type} chord in 2nd inversion")
+            prompts.append(f"The chord {note_name} {chord_type} in 2nd inversion")
+
+    return prompts
+
+def get_all_text_prompts(note_name: str, chord_type: str, inversion: str | None):
+    prompts = []
+    prompts_added = generate_text_prompts(note_name, chord_type, inversion)
+    prompts.extend(prompts_added)
+
+    if chord_type == "dim":
+        prompts_added = generate_text_prompts(note_name, "diminished", inversion)
+        prompts.extend(prompts_added)
+    elif chord_type == "aug":
+        prompts_added = generate_text_prompts(note_name, "augmented", inversion)
+        prompts.extend(prompts_added)
+    elif chord_type == "major":
+        prompts_added = generate_text_prompts(note_name, "maj", inversion)
+        prompts.extend(prompts_added)
+    elif chord_type == "minor":
+        prompts_added = generate_text_prompts(note_name, "min", inversion)
+        prompts.extend(prompts_added)
+
+    if note_name[-1] == "#":
+        sharp_note = note_name[0]
+        prompts_added = generate_text_prompts(f"{sharp_note}-sharp", chord_type, inversion)
+        prompts.extend(prompts_added)
+
+        if chord_type == "dim":
+            prompts_added = generate_text_prompts(f"{sharp_note}-sharp", "diminished", inversion)
+            prompts.extend(prompts_added)
+        elif chord_type == "aug":
+            prompts_added = generate_text_prompts(f"{sharp_note}-sharp", "augmented", inversion)
+            prompts.extend(prompts_added)
+        
+        letters = string.ascii_uppercase
+        index = letters.index(sharp_note)
+        flat_note = letters[(index + 1) % 7]
+        prompts_added = generate_text_prompts(f"{flat_note}-flat", chord_type, inversion)
+        prompts.extend(prompts_added)
+
+        if chord_type == "dim":
+            prompts_added = generate_text_prompts(f"{flat_note}-flat", "diminished", inversion)
+            prompts.extend(prompts_added)
+        elif chord_type == "aug":
+            prompts_added = generate_text_prompts(f"{flat_note}-flat", "augmented", inversion)
+            prompts.extend(prompts_added)
+    else:
+        prompts_added = generate_text_prompts(f"{note_name}-natural", chord_type, inversion)
+        prompts.extend(prompts_added)
+
+        if chord_type == "dim":
+            prompts_added = generate_text_prompts(f"{note_name}-natural", "diminished", inversion)
+            prompts.extend(prompts_added)
+        elif chord_type == "aug":
+            prompts_added = generate_text_prompts(f"{note_name}-natural", "augmented", inversion)
+            prompts.extend(prompts_added)
+
+    return prompts
+
+def get_prompt_row_iterator(
+    chords: Iterable[Tuple[int, str]]
+) -> Iterator[DatasetRowDescription]:
+    idx = 0
+    for root_note_pitch_class, chord_type in chords:
+        note_name = get_note_name_from_pitch_class(root_note_pitch_class)
+
+        for inversion in [None, "6", "64"]:
+            prompts = get_all_text_prompts(note_name, chord_type, inversion)
+
+            for prompt in prompts:
+                yield (
+                    idx,
+                    {
+                        "inversion": inversion,
+                        "note_name": note_name,
+                        "root_note_pitch_class": root_note_pitch_class,
+                        "chord_type": chord_type,
+                        "prompt": prompt
+                    },
+                )
+                idx += 1
+
+def prompt_row_processor(
+    dataset_path: Path, row: DatasetRowDescription
+) -> List[DatasetRowDescription]:
+    row_idx, row_info = row
+
+    note_name = row_info["note_name"]
+    inversion = row_info["inversion"]
+    root_note_pitch_class = row_info["root_note_pitch_class"]
+    chord_type = row_info["chord_type"]
+    prompt = row_info["prompt"]
+
+    # record this row in the csv
+    return [
+        (
+            row_idx,
+            {
+                "root_note_name": note_name,
+                "chord_type": chord_type,
+                "inversion": inversion or "5",
+                "root_note_pitch_class": root_note_pitch_class,
+                "prompt": prompt
+            },
+        )
+    ]
 
 if __name__ == "__main__":
     """Requires 18.7 GB of disk space.
@@ -185,29 +335,43 @@ if __name__ == "__main__":
     """
     # configure the dataset
     dataset_name = "chords"
-    dataset_writer = DatasetWriter(
+    # dataset_writer = DatasetWriter(
+    #     dataset_name=dataset_name,
+    #     save_to_parent_directory=OUTPUT_DIR,
+    #     row_iterator=get_row_iterator(
+    #         chords=get_all_chords(),
+    #         instruments=get_instruments(
+    #             ignore_atonal=True,
+    #             ignore_polyphonic=True,
+    #             ignore_highly_articulate=True,
+    #             take_only_first_category=False,
+    #         ),
+    #     ),
+    #     row_processor=row_processor,
+    #     max_processes=8,
+    # )
+
+    # # create the dataset
+    # dataset_df = dataset_writer.create_dataset()
+
+    # # warn of any silent samples
+    # num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
+    # if num_silent_samples > 0:
+    #     warnings.warn(
+    #         f"In the dataset, there were {num_silent_samples} silent samples.",
+    #         UserWarning,
+    #     )
+
+    # create prompts dataset
+    prompts_writer = DatasetWriter(
         dataset_name=dataset_name,
         save_to_parent_directory=OUTPUT_DIR,
-        row_iterator=get_row_iterator(
-            chords=get_all_chords(),
-            instruments=get_instruments(
-                ignore_atonal=True,
-                ignore_polyphonic=True,
-                ignore_highly_articulate=True,
-                take_only_first_category=False,
-            ),
+        row_iterator=get_prompt_row_iterator(
+            get_all_chords()
         ),
-        row_processor=row_processor,
+        row_processor=prompt_row_processor,
         max_processes=8,
+        is_prompts=True
     )
 
-    # create the dataset
-    dataset_df = dataset_writer.create_dataset()
-
-    # warn of any silent samples
-    num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
-    if num_silent_samples > 0:
-        warnings.warn(
-            f"In the dataset, there were {num_silent_samples} silent samples.",
-            UserWarning,
-        )
+    prompts_writer.create_dataset()
