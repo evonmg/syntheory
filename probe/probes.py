@@ -179,7 +179,6 @@ class ProbeExperiment:
         self.dataset_labels_filepath = dataset_labels_filepath
 
         # load the dataset and encode categorical targets
-        # TODO: fix this ahhhh help maybe i need to make a new prompts dataset with labels… bruh
         dataset_labels = pd.read_csv(dataset_labels_filepath)
         dataset_labels = self.format_dataset_labels(
             output_type, dataset_label_column_name, dataset_labels

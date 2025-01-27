@@ -9,7 +9,7 @@ models:
   # - MELSPEC
   # - MFCC
   # - CHROMA
-  # - MUSICGEN_TEXT_ENCODER
+  - MUSICGEN_TEXT_ENCODER
 
 # Concepts to extract representations for
 concepts:

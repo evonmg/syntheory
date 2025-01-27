@@ -68,7 +68,6 @@ def get_all_chords() -> List[Tuple[int, str]]:
 def get_row_iterator(
     chords: Iterable[Tuple[int, str]], instruments: List[Dict[str, Any]]
 ) -> Iterator[DatasetRowDescription]:
-    # TODO: add text prompts
     idx = 0
     for root_note_pitch_class, chord_type in chords:
         note_name = get_note_name_from_pitch_class(root_note_pitch_class)
@@ -92,8 +91,6 @@ def row_processor(
 ) -> List[DatasetRowDescription]:
     row_idx, row_info = row
 
-    # TODO: generate prompts for text generation using python string wizardry
-
     # get soundfont information
     note_name = row_info["note_name"]
     inversion = row_info["inversion"]
@@ -103,12 +100,6 @@ def row_processor(
     midi_program_num = instrument_info["program"]
     midi_program_name = instrument_info["name"]
     midi_category = instrument_info["category"]
-
-    # TODO
-    # examples of text prompts for chords:
-    # Cmaj, Cmaj6, Cmaj64 - note_name + chord_type + inversion ?
-    # store each of the possible options into a csv file? txt file?
-    # but we don't need instrument information
 
     cleaned_name = midi_program_name.replace(" ", "_")
     midi_file_path = (
@@ -120,10 +111,10 @@ def row_processor(
         / f"{note_name}_{chord_type}_{inversion or '5'}_{midi_program_num}_{cleaned_name}.wav"
     )
     # add chord text descriptions. except this time it makes one for every instrument which is definitely a waste of computation
-    text_file_path = (
-        dataset_path
-        / f"{note_name}_{chord_type}_{inversion or '5'}.csv"
-    )
+    # text_file_path = (
+    #     dataset_path
+    #     / f"{note_name}_{chord_type}_{inversion or '5'}.csv"
+    # )
 
     chord_midi = get_chord_midi(root_note_pitch_class, chord_type, inversion)
     midi_file = create_midi_file()
@@ -141,19 +132,19 @@ def row_processor(
     midi_file.save(midi_file_path)
     produce_synth_wav_from_midi(midi_file_path, synth_file_path)
 
-    # create rows of text prompts
-    # examples of text prompts for chords:
-    # C minor, Cmin, Cm - note_name + chord_type + inversion
-    prompts = [f"{note_name} {chord_type} {inversion or '5'}", f"{note_name}{chord_type[:3]}{inversion or '5'}"]
-    if chord_type == "minor":
-        prompts.append(f"{note_name}m{inversion or '5'}")
-    elif chord_type == "major":
-        prompts.append(f"{note_name}M{inversion or '5'}")
+    # # create rows of text prompts
+    # # examples of text prompts for chords:
+    # # C minor, Cmin, Cm - note_name + chord_type + inversion
+    # prompts = [f"{note_name} {chord_type} {inversion or '5'}", f"{note_name}{chord_type[:3]}{inversion or '5'}"]
+    # if chord_type == "minor":
+    #     prompts.append(f"{note_name}m{inversion or '5'}")
+    # elif chord_type == "major":
+    #     prompts.append(f"{note_name}M{inversion or '5'}")
 
-    # create csv file
-    with open(text_file_path, "w") as f:
-        writer = csv.writer(f)
-        writer.writerow(prompts)
+    # # create csv file
+    # with open(text_file_path, "w") as f:
+    #     writer = csv.writer(f)
+    #     writer.writerow(prompts)
 
     is_silent = is_wave_silent(synth_file_path)
 
@@ -182,7 +173,6 @@ def row_processor(
 def get_row_iterator(
     chords: Iterable[Tuple[int, str]], instruments: List[Dict[str, Any]]
 ) -> Iterator[DatasetRowDescription]:
-    # TODO: add text prompts
     idx = 0
     for root_note_pitch_class, chord_type in chords:
         note_name = get_note_name_from_pitch_class(root_note_pitch_class)
@@ -207,21 +197,36 @@ def generate_text_prompts(note_name: str, chord_type: str, inversion: str | None
     prompts.append(f"{note_name} {chord_type}{f" {inversion}" if inversion is not None else ''}")
     prompts.append(f"Generate a {note_name} {chord_type}{f" {inversion}" if inversion is not None else ''} chord")
     prompts.append(f"The chord {note_name} {chord_type}{f" {inversion}" if inversion is not None else ''}")
+    prompts.append(f"Produce a {chord_type}{f" {inversion}" if inversion is not None else ''} chord with root {note_name}")
+    prompts.append(f"Output the triad {note_name} {chord_type}{f" {inversion}" if inversion is not None else ''}")
+    prompts.append(f"Invoke a{f" {inversion}" if inversion is not None else ''} triad that is {chord_type} with {note_name} as the tonic")
+    prompts.append(f"Build a {chord_type}{f" {inversion}" if inversion is not None else ''} chord anchored on {note_name}")
+    prompts.append(f"Express a{f" {inversion}" if inversion is not None else ''} {chord_type} chord with {note_name} as the root")
+    prompts.append(f"Perform a{f" {inversion}" if inversion is not None else ''} chord rooted at {note_name} with quality {chord_type}")
 
     if inversion is None:
         prompts.append(f"Root position {note_name} {chord_type} chord")
-        prompts.append(f"Generate a {note_name} {chord_type} chord in root position")
+        prompts.append(f"Sound a {note_name} {chord_type} triad in root position")
         prompts.append(f"The chord {note_name} {chord_type} in root position")
+        prompts.append(f"Play a {chord_type} chord rooted at {note_name} in root position")
+        prompts.append(f"Compose a {chord_type} root position chord with {note_name} as the root")
+        prompts.append(f"A root position {chord_type} triad with bass {note_name}")
     else:
         prompts.append(f"{note_name} {chord_type} in the {inversion} inversion")
         if inversion == "6":
             prompts.append(f"1st inversion {note_name} {chord_type} chord")
-            prompts.append(f"Generate a {note_name} {chord_type} chord in 1st inversion")
+            prompts.append(f"Sound a {note_name} {chord_type} triad in 1st inversion")
             prompts.append(f"The chord {note_name} {chord_type} in 1st inversion")
+            prompts.append(f"Play a {chord_type} chord rooted at {note_name} in the 1st inversion")
+            prompts.append(f"Compose a {chord_type} 1st inversion chord with {note_name} as the root")
+            # A major 6 -> C# as the bass? how do I do this computationally lol
+            # prompts.append(f"A root position {chord_type} triad with bass {note_name}")
         elif inversion == "64":
             prompts.append(f"2nd inversion {note_name} {chord_type} chord")
-            prompts.append(f"Generate a {note_name} {chord_type} chord in 2nd inversion")
+            prompts.append(f"Sound a {note_name} {chord_type} triad in 2nd inversion")
             prompts.append(f"The chord {note_name} {chord_type} in 2nd inversion")
+            prompts.append(f"Play a {chord_type} chord rooted at {note_name} in the 2nd inversion")
+            prompts.append(f"Compose a {chord_type} 2nd inversion chord with {note_name} as the root")
 
     return prompts
 
@@ -233,15 +238,20 @@ def get_all_text_prompts(note_name: str, chord_type: str, inversion: str | None)
     if chord_type == "dim":
         prompts_added = generate_text_prompts(note_name, "diminished", inversion)
         prompts.extend(prompts_added)
+        prompts.append(f"{note_name}dim{f"{inversion}" if inversion is not None else ''}")
     elif chord_type == "aug":
         prompts_added = generate_text_prompts(note_name, "augmented", inversion)
         prompts.extend(prompts_added)
+        prompts.append(f"{note_name}aug{f"{inversion}" if inversion is not None else ''}")
     elif chord_type == "major":
         prompts_added = generate_text_prompts(note_name, "maj", inversion)
         prompts.extend(prompts_added)
+        prompts.append(f"{note_name}maj{f"{inversion}" if inversion is not None else ''}")
     elif chord_type == "minor":
         prompts_added = generate_text_prompts(note_name, "min", inversion)
         prompts.extend(prompts_added)
+        prompts.append(f"{note_name}m{f"{inversion}" if inversion is not None else ''}")
+        prompts.append(f"{note_name}min{f" {inversion}" if inversion is not None else ''}")
 
     if note_name[-1] == "#":
         sharp_note = note_name[0]
