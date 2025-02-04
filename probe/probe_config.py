@@ -7,7 +7,7 @@ CONCEPT_LABELS = {
     #     (19, "chord_progression"),
     #     (12, "key_note_name"),
     # ],
-    "chords": [(4, "chord_type"), (3, "inversion"), (12, "root_note_name")],
+    "chords": [(12, "root_note_name"), (4, "chord_type"), (3, "inversion")],
     # "scales": [(7, "mode"), (12, "root_note_name")],
     # "intervals": [(12, "interval"), (12, "root_note_name")],
     # "notes": [(12, "root_note_pitch_class"), (9, "octave")],

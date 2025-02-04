@@ -3,6 +3,7 @@ import warnings
 from pathlib import Path
 from typing import Optional, List, Iterator, Iterable, Dict, Any, Tuple
 from itertools import product
+import random
 
 # changed
 import csv
@@ -290,6 +291,26 @@ def get_all_text_prompts(note_name: str, chord_type: str, inversion: str | None)
 
     return prompts
 
+# randomly samples labels that are not the current labels
+def get_counterfactual_labels(note_name, chord_type, inversion) -> tuple[str, str, str]:
+    note_names = list(PITCH_CLASS_TO_NOTE_NAME_SHARP.keys())
+    chord_types = list(_CHORD_MAP.keys())
+    inversions = [None, "6", "64"]
+
+    rand_note_name = get_note_name_from_pitch_class(note_names[random.randint(0, len(note_names)-1)])
+    while rand_note_name == note_name:
+        rand_note_name = get_note_name_from_pitch_class(note_names[random.randint(0, len(note_names)-1)])
+
+    rand_chord_type = chord_types[random.randint(0, len(chord_types)-1)]
+    while rand_chord_type == chord_type:
+        rand_chord_type = chord_types[random.randint(0, len(chord_types)-1)]
+
+    rand_inversion = inversions[random.randint(0, len(inversions)-1)]
+    while rand_inversion == inversion:
+        rand_inversion = inversions[random.randint(0, len(inversions)-1)]
+
+    return (rand_note_name, rand_chord_type, rand_inversion)
+
 def get_prompt_row_iterator(
     chords: Iterable[Tuple[int, str]]
 ) -> Iterator[DatasetRowDescription]:
@@ -301,6 +322,7 @@ def get_prompt_row_iterator(
             prompts = get_all_text_prompts(note_name, chord_type, inversion)
 
             for prompt in prompts:
+                cf_note_name, cf_chord_type, cf_inversion = get_counterfactual_labels(note_name, chord_type, inversion)
                 yield (
                     idx,
                     {
@@ -308,7 +330,10 @@ def get_prompt_row_iterator(
                         "note_name": note_name,
                         "root_note_pitch_class": root_note_pitch_class,
                         "chord_type": chord_type,
-                        "prompt": prompt
+                        "prompt": prompt,
+                        "cf_inversion": cf_inversion,
+                        "cf_note_name": cf_note_name,
+                        "cf_chord_type": cf_chord_type
                     },
                 )
                 idx += 1
@@ -323,6 +348,9 @@ def prompt_row_processor(
     root_note_pitch_class = row_info["root_note_pitch_class"]
     chord_type = row_info["chord_type"]
     prompt = row_info["prompt"]
+    cf_inversion = row_info["cf_inversion"]
+    cf_note_name = row_info["cf_note_name"]
+    cf_chord_type = row_info["cf_chord_type"]
 
     # record this row in the csv
     return [
@@ -332,6 +360,9 @@ def prompt_row_processor(
                 "root_note_name": note_name,
                 "chord_type": chord_type,
                 "inversion": inversion or "5",
+                "cf_root_note_name": cf_note_name,
+                "cf_chord_type": cf_chord_type,
+                "cf_inversion": cf_inversion,
                 "root_note_pitch_class": root_note_pitch_class,
                 "prompt": prompt
             },

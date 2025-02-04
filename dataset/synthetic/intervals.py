@@ -21,6 +21,32 @@ _PLAY_STYLE = {
     2: "UNISON",
 }
 
+_INTERVALS = {
+    1: "m2",
+    2: "M2",
+    3: "m3",
+    4: "M3",
+    5: "P4",
+    6: "tritone",
+    7: "P5",
+    8: "m6",
+    9: "M6",
+    10: "m7",
+    11: "M7",
+    12: "P8",
+}
+
+_SPELLED_NUMS = {
+    2: "second",
+    3: "third",
+    4: "fourth",
+    5: "fifth",
+    6: "sixth",
+    7: "seventh",
+    8: "eighth",
+}
+
+_NOTES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
 
 def write_interval_midi(
     base_midi_note_val: int,
@@ -169,6 +195,108 @@ def row_processor(
         )
     ]
 
+def get_interval_notes(note_name: str, midi_interval_val: int) -> tuple[str]:
+    # if note_name = A, interval_name = 2 (M2), return A+2 (B), A-2 (G)
+    # index = 0
+    index = _NOTES.index(note_name)
+
+    # _NOTES[2] = B
+    up_note = _NOTES[(index+midi_interval_val)%len(_NOTES)]
+    # _NOTES[(-2)%12] = _NOTES[10] = G
+    down_note = _NOTES[(index+midi_interval_val)%len(_NOTES)]
+
+    # TODO: this does not work if interval is minor - e.g. C + m3 should not be D#
+
+    return (up_note, down_note)
+
+def get_all_text_prompts(midi_interval_val: int, note_name: str) -> List[str]:
+    prompts = []
+
+    interval_name = _INTERVALS[midi_interval_val]
+    interval_nth_name = f"{interval_name[1]}th"
+    if interval_name[-1] == "2":
+        interval_nth_name = "2nd"
+    elif interval_name[-1] == "3":
+        interval_nth_name = "3rd"
+
+    prompts.append(f"Generate the interval {interval_name} starting at {note_name}")
+    prompts.append(f"{interval_name} starting at {note_name}")
+    prompts.append(f"{note_name} going up a {interval_name}")
+    prompts.append(f"{note_name} going down a {interval_name}")
+
+    spelled_num = _SPELLED_NUMS[interval_name[1]]
+
+    if interval_name[0] == "m":
+        prompts.append(f"A minor {interval_nth_name} starting at {note_name}")
+        prompts.append(f"Minor interval of a {spelled_num} starting at {note_name}")
+        prompts.append(f"min{interval_name[1]} interval from {note_name}")
+    elif interval_name[0] == "M":
+        prompts.append(f"A major {interval_nth_name} starting at {note_name}")
+        prompts.append(f"Major interval of a {spelled_num} starting at {note_name}")
+        prompts.append(f"maj{interval_name[1]} interval from {note_name}")
+    elif interval_name == "tritone":
+        prompts.append(f"An augmented 4th starting at {note_name}")
+        prompts.append(f"A diminished 5th starting at {note_name}")
+        prompts.append(f"Diminished interval of a {spelled_num} starting at {note_name}")
+        prompts.append(f"dim{interval_name[1]} interval from {note_name}")
+    elif interval_name[0] == "P":
+        prompts.append(f"A perfect {interval_nth_name} starting at {note_name}")
+        prompts.append(f"Perfect interval of a {spelled_num} starting at {note_name}")
+        prompts.append(f"aug{interval_name[1]} interval from {note_name}")
+    
+    if interval_name[1] == "8":
+        prompts.append(f"A perfect octave starting at {note_name}")
+
+    # TODO: start at note, then go up/down the specified interval - make function to calculate this somehow
+    up_note, down_note = get_interval_notes(note_name, midi_interval_val)
+
+    prompts.append(f"The interval given by the notes {note_name} and {up_note}")
+    prompts.append(f"The interval given by the notes {note_name} and {down_note}")
+
+    return prompts
+
+def get_prompt_row_iterator(
+    intervals: List[Tuple[int, int]]) -> Iterator[DatasetRowDescription]:
+    idx = 0
+    for midi_base_note, midi_interval_val in intervals:
+        note_name = get_note_name_from_pitch_class(midi_base_note % 12)
+
+        prompts = get_all_text_prompts(midi_interval_val, note_name)
+        for prompt in prompts:
+            yield (
+                idx,
+                {
+                    "note_name": note_name,
+                    "midi_interval_val": midi_interval_val,
+                    "midi_base_note": midi_base_note,
+                    "prompt": prompt
+                },
+            )
+            idx += 1
+
+def prompt_row_processor(
+    dataset_path: Path, row: DatasetRowDescription
+) -> List[DatasetRowDescription]:
+    row_idx, row_info = row
+    note_name = row_info["note_name"]
+    midi_interval_val = row_info["midi_interval_val"]
+    midi_base_note = row_info["midi_base_note"]
+    prompt = row_info["prompt"]
+
+    # record this row in the csv
+    return [
+        (
+            row_idx,
+            {
+                "root_note_name": note_name,
+                "root_note_pitch_class": midi_base_note % 12,
+                "interval": midi_interval_val,
+                "midi_note_val": midi_base_note,
+                "prompt": prompt,
+            },
+        )
+    ]
+
 
 if __name__ == "__main__":
     """This takes ~56.1 GB of disk space.
@@ -177,29 +305,42 @@ if __name__ == "__main__":
     """
     # configure the dataset
     dataset_name = "intervals"
-    dataset_writer = DatasetWriter(
+    # dataset_writer = DatasetWriter(
+    #     dataset_name=dataset_name,
+    #     save_to_parent_directory=OUTPUT_DIR,
+    #     row_iterator=get_row_iterator(
+    #         intervals=get_all_interval_midi_settings(),
+    #         instruments=get_instruments(
+    #             ignore_atonal=True,
+    #             ignore_polyphonic=True,
+    #             ignore_highly_articulate=True,
+    #             take_only_first_category=False,
+    #         ),
+    #     ),
+    #     row_processor=row_processor,
+    #     max_processes=8,
+    # )
+
+    # # check the resulting info csv / dataframe
+    # dataset_df = dataset_writer.create_dataset()
+
+    # # warn of any silent samples
+    # num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
+    # if num_silent_samples > 0:
+    #     warnings.warn(
+    #         f"In the dataset, there were {num_silent_samples} silent samples.",
+    #         UserWarning,
+    #     )
+
+    prompts_writer = DatasetWriter(
         dataset_name=dataset_name,
         save_to_parent_directory=OUTPUT_DIR,
-        row_iterator=get_row_iterator(
-            intervals=get_all_interval_midi_settings(),
-            instruments=get_instruments(
-                ignore_atonal=True,
-                ignore_polyphonic=True,
-                ignore_highly_articulate=True,
-                take_only_first_category=False,
-            ),
+        row_iterator=get_prompt_row_iterator(
+            intervals=get_all_interval_midi_settings()
         ),
-        row_processor=row_processor,
+        row_processor=prompt_row_processor,
         max_processes=8,
+        is_prompts=True,
     )
 
-    # check the resulting info csv / dataframe
-    dataset_df = dataset_writer.create_dataset()
-
-    # warn of any silent samples
-    num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
-    if num_silent_samples > 0:
-        warnings.warn(
-            f"In the dataset, there were {num_silent_samples} silent samples.",
-            UserWarning,
-        )
+    dataset_df = prompts_writer.create_dataset()

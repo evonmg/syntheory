@@ -4,12 +4,12 @@
 #SBATCH -n 4
 #SBATCH --mem=63G
 #SBATCH -t 24:00:00
-#SBATCH -J probe_experiment_ou16kkga
-#SBATCH -e logs/probe/ou16kkga/probe_experiment_ou16kkga-%j.err
-#SBATCH -o logs/probe/ou16kkga/probe_experiment_ou16kkga-%j.out
+#SBATCH -J probe_experiment_c4u2iwn5
+#SBATCH -e logs/probe/c4u2iwn5/probe_experiment_c4u2iwn5-%j.err
+#SBATCH -o logs/probe/c4u2iwn5/probe_experiment_c4u2iwn5-%j.out
 
 # Activate virtual environment
 conda activate syntheory
 
 # Run the script
-python probe/main.py --sweep_id ou16kkga --wandb_project music-theory-musicgen
+python probe/main.py --sweep_id c4u2iwn5 --wandb_project music-theory-musicgen
