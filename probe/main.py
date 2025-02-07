@@ -181,19 +181,22 @@ def start(
         cfg,
         summarize_frequency=100,
         use_wandb=use_wandb,
+        model_type=model_type
     )
 
     emb_in_mem = cfg["load_embeddings_in_memory"]
 
-    # --- TRAIN PROBE ---
-    exp.load_data(
-        dataset_labels_filepath=exp_info["dataset_labels_path"],
-        dataset_label_column_name=label_column_name,
-        embeddings_zarr_filepath=exp_info["zarr_filepath"],
-        output_type=output_type,
-        model_layer=model_layer,
-    )
-    exp.train()
+    # # --- TRAIN PROBE ---
+    # exp.load_data(
+    #     dataset_labels_filepath=exp_info["dataset_labels_path"],
+    #     dataset_label_column_name=label_column_name,
+    #     embeddings_zarr_filepath=exp_info["zarr_filepath"],
+    #     output_type=output_type,
+    #     model_layer=model_layer,
+    # )
+    # exp.train()
+
+    exp.plot_umap()
 
     return exp
 
@@ -225,3 +228,4 @@ if __name__ == "__main__":  # pragma: no cover
     wandb.agent(
         args.sweep_id, project=args.wandb_project, function=wrapped_train, count=1
     )
+

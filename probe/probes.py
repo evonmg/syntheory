@@ -22,6 +22,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torcheval.metrics.functional import multiclass_f1_score
 
+import umap
+import umap.plot
+
 from sklearn.metrics import (
     average_precision_score,
     r2_score,
@@ -29,7 +32,7 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, normalize
 
 from probe.probe_config import ProbeExperimentConfig
 
@@ -81,6 +84,7 @@ class ProbeExperiment:
         pretrained_probe=None,
         summarize_frequency: int = 20,
         use_wandb: bool = True,
+        model_type=None,
     ) -> None:
         if not cfg["early_stopping"] and cfg["max_num_epochs"] is None:
             raise ValueError("No termination criteria specified")
@@ -90,6 +94,9 @@ class ProbeExperiment:
         self.probe = pretrained_probe
         self.label_column = cfg["dataset_embeddings_label_column_name"]
         self.use_wandb = use_wandb
+
+        # model type: [ JUKEBOX | MUSICGEN_DECODER | MUSICGEN_AUDIO_ENCODER | MUSICGEN_TEXT_ENCODER | MFCC | CHROMA | MELSPEC | HANDCRAFT ]
+        self.model_type = model_type
 
         # print a summary ever n steps
         self.summarize_frequency = summarize_frequency
@@ -226,6 +233,16 @@ class ProbeExperiment:
         self.split_to_uids = {"train": [], "valid": [], "test": []}
         self.split_to_X = {}
         self.split_to_y = {}
+
+        # # fix for inefficiency probably
+        # self.y = dataset_labels[self.label_column].values
+        # selector = dataset_labels["zarr_idx"].to_numpy()
+
+        # if self.is_foundation_model_layers:
+        #     self.X = np.array(data[selector][:, -1, :], dtype=np.float32)
+        # else:
+        #     # handcrafted features or encoders (only one layer)
+        #     self.X = np.array(data[selector], dtype=np.float32)
 
         for split in (("train", train_df), ("test", test_df), ("valid", valid_df)):
             split_name, data_df = split
@@ -615,3 +632,44 @@ class ProbeExperiment:
 
         # return instance of ProbeExperiment, loaded from persisted config + model state
         return cls(cfg, pretrained_scaler=scaler, pretrained_probe=probe, **kwargs)
+    
+    def plot_umap(self,
+        dataset_labels_filepath,
+        dataset_label_column_name: str,
+        embeddings_zarr_filepath,
+        output_type: str,
+        model_layer: int = 0,
+    ) -> None:
+        self.dataset_labels_filepath = dataset_labels_filepath
+
+        # load the dataset and encode categorical targets
+        dataset_labels = pd.read_csv(dataset_labels_filepath)
+
+        # load the zarr, read only mode
+        data = zarr.open(embeddings_zarr_filepath, mode="r")
+
+        self.is_foundation_model_layers = len(data.shape) == 3
+
+        # fix for inefficiency probably
+        y = dataset_labels[self.label_column].values
+        selector = dataset_labels["zarr_idx"].to_numpy()
+
+        if self.is_foundation_model_layers:
+            X = np.array(data[selector][:, -1, :], dtype=np.float32)
+        else:
+            # handcrafted features or encoders (only one layer)
+            X = np.array(data[selector], dtype=np.float32)
+
+        # aggregate all the dataset label splits to plot
+        print(y.shape)
+        print(y)
+        print(X.shape)
+        print(X)
+
+        # cosine similarity for word embeddings?
+        mapper = umap.UMAP(n_neighbors=30, min_dist=0.1, metric="cosine").fit(X)
+        ax = umap.plot.points(mapper, labels=y)
+
+        ax.get_figure().savefig(f"umap_plot_{str(self.dataset_labels_filepath).split("/")[6]}_{self.label_column}_{self.model_type}.png")
+
+        print("done")

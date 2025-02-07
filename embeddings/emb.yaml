@@ -16,9 +16,9 @@ concepts:
   # - time_signatures
   # - tempos
   # - notes
-  - chords
+  # - chords
   # - scales
-  # - intervals
+  - intervals
   # - chord_progressions
 
 # Types of conditioning

@@ -27,7 +27,7 @@ _INTERVALS = {
     3: "m3",
     4: "M3",
     5: "P4",
-    6: "tritone",
+    6: "d5",
     7: "P5",
     8: "m6",
     9: "M6",
@@ -47,6 +47,18 @@ _SPELLED_NUMS = {
 }
 
 _NOTES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
+
+_ENHARMONICS = {
+    "A#": "Bb",
+    "B": "Cb",
+    "C": "B#",
+    "C#": "Db",
+    "D#": "Eb",
+    "E": "Fb",
+    "F": "E#",
+    "F#": "Gb",
+    "G#": "Ab"
+}
 
 def write_interval_midi(
     base_midi_note_val: int,
@@ -203,9 +215,48 @@ def get_interval_notes(note_name: str, midi_interval_val: int) -> tuple[str]:
     # _NOTES[2] = B
     up_note = _NOTES[(index+midi_interval_val)%len(_NOTES)]
     # _NOTES[(-2)%12] = _NOTES[10] = G
-    down_note = _NOTES[(index+midi_interval_val)%len(_NOTES)]
+    down_note = _NOTES[(index-midi_interval_val)%len(_NOTES)]
 
-    # TODO: this does not work if interval is minor - e.g. C + m3 should not be D#
+    # this does not always work if interval is minor - e.g. C + m3 should not be D# but Eb
+    if midi_interval_val in [3,6,8,10] and up_note[-1] == "#":
+        # if note name is natural key
+        if note_name[-1] != "#":
+            up_note = _ENHARMONICS[up_note]
+
+    # also does not work for down notes if note_name = C or F
+    # C - M2 = Bb, not A#
+    if note_name == "C":
+        if midi_interval_val in [2,4,9,11]:
+            down_note = _ENHARMONICS[down_note]
+    elif note_name == "F":
+        if midi_interval_val in [2,4,7,9,11]:
+            down_note = _ENHARMONICS[down_note]
+
+    # careful with m2
+    # C + m2 = Db, not C#
+    if midi_interval_val == 1 and note_name not in ["E","B"]:
+        if note_name[-1] != "#":
+            up_note = _ENHARMONICS[down_note]
+
+    # if up note is C and root note is not natural
+    if note_name[-1] == "#":
+        if up_note in ["C", "F"]:
+            up_note = _ENHARMONICS[up_note]
+
+        if down_note in ["C", "F"]:
+            down_note = _ENHARMONICS[down_note]
+
+    # change A# in certain cases
+    if note_name[-1] != "#" and note_name not in ["B","E"]:
+        if up_note == "A#":
+            up_note = "Bb"
+        
+        if down_note == "A#":
+            down_note = "Bb"
+
+    # change down major 7th in certain cases
+    if note_name[-1] != "#" and midi_interval_val == 11 and down_note[-1] == "#":
+        down_note = _ENHARMONICS[down_note]
 
     return (up_note, down_note)
 
@@ -224,7 +275,7 @@ def get_all_text_prompts(midi_interval_val: int, note_name: str) -> List[str]:
     prompts.append(f"{note_name} going up a {interval_name}")
     prompts.append(f"{note_name} going down a {interval_name}")
 
-    spelled_num = _SPELLED_NUMS[interval_name[1]]
+    spelled_num = _SPELLED_NUMS[int(interval_name[-1])]
 
     if interval_name[0] == "m":
         prompts.append(f"A minor {interval_nth_name} starting at {note_name}")
@@ -234,7 +285,7 @@ def get_all_text_prompts(midi_interval_val: int, note_name: str) -> List[str]:
         prompts.append(f"A major {interval_nth_name} starting at {note_name}")
         prompts.append(f"Major interval of a {spelled_num} starting at {note_name}")
         prompts.append(f"maj{interval_name[1]} interval from {note_name}")
-    elif interval_name == "tritone":
+    elif interval_name == "d5":
         prompts.append(f"An augmented 4th starting at {note_name}")
         prompts.append(f"A diminished 5th starting at {note_name}")
         prompts.append(f"Diminished interval of a {spelled_num} starting at {note_name}")
@@ -250,8 +301,30 @@ def get_all_text_prompts(midi_interval_val: int, note_name: str) -> List[str]:
     # TODO: start at note, then go up/down the specified interval - make function to calculate this somehow
     up_note, down_note = get_interval_notes(note_name, midi_interval_val)
 
-    prompts.append(f"The interval given by the notes {note_name} and {up_note}")
-    prompts.append(f"The interval given by the notes {note_name} and {down_note}")
+    # change behavior for A# and D# specifically
+    if note_name not in ["A#", "D#"]:
+        # don't go up major 7ths if note name is a sharp note
+        if not (midi_interval_val == 11 and note_name[-1] == "#"):
+            prompts.append(f"The interval given by the notes {note_name} going up to a {up_note}")
+            prompts.append(f"Start at note {note_name} and go up to a {up_note}")
+        # don't go down minor 2nds if note name is a sharp note
+        if not (midi_interval_val == 1 and note_name[-1] == "#"):
+            prompts.append(f"The interval given by the notes {note_name} going down to a {down_note}")
+            prompts.append(f"Start at note {note_name} and go down to a {down_note}")
+    elif note_name in ["A#", "D#"]:
+        # down note is a natural note - change A# to Bb
+        if down_note[-1] != "#" and midi_interval_val != 1:
+            prompts.append(f"The interval given by the notes {_ENHARMONICS[note_name]} going down to a {down_note}")
+            prompts.append(f"Start at note {_ENHARMONICS[note_name]} and go down to a {down_note}")
+        else:
+            prompts.append(f"The interval given by the notes {note_name} going down to a {down_note}")
+            prompts.append(f"Start at note {note_name} and go down to a {down_note}")
+        if up_note[-1] != "#" and midi_interval_val != 11:
+            prompts.append(f"The interval given by the notes {_ENHARMONICS[note_name]} going up to a {up_note}")
+            prompts.append(f"Start at note {_ENHARMONICS[note_name]} and go up to a {up_note}")
+        else:
+            prompts.append(f"The interval given by the notes {note_name} going up to a {up_note}")
+            prompts.append(f"Start at note {note_name} and go up to a {up_note}")
 
     return prompts
 
