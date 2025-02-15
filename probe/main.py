@@ -186,16 +186,17 @@ def start(
 
     emb_in_mem = cfg["load_embeddings_in_memory"]
 
-    # # --- TRAIN PROBE ---
-    # exp.load_data(
-    #     dataset_labels_filepath=exp_info["dataset_labels_path"],
-    #     dataset_label_column_name=label_column_name,
-    #     embeddings_zarr_filepath=exp_info["zarr_filepath"],
-    #     output_type=output_type,
-    #     model_layer=model_layer,
-    # )
-    # exp.train()
+    # --- TRAIN PROBE ---
+    exp.load_data(
+        dataset_labels_filepath=exp_info["dataset_labels_path"],
+        dataset_label_column_name=label_column_name,
+        embeddings_zarr_filepath=exp_info["zarr_filepath"],
+        output_type=output_type,
+        model_layer=model_layer,
+    )
+    exp.train()
 
+    # TODO: this does not need to run every time we train a probe - maybe when embeddings are extracted this can be its separate step
     exp.plot_umap()
 
     return exp

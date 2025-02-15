@@ -160,6 +160,7 @@ NOTE_NAME_TO_PITCH_CLASS = {
     "D#": 3,
     "Eb": 3,
     "E": 4,
+    "Fb": 4,
     # There are some analyses that report E# as the tonic
     "E#": 5,
     "F": 5,
@@ -172,6 +173,8 @@ NOTE_NAME_TO_PITCH_CLASS = {
     "A#": 10,
     "Bb": 10,
     "B": 11,
+    "Cb": 11,
+    "B#": 0,
 }
 
 PITCH_CLASS_TO_NOTE_NAME_SHARP = {
@@ -244,3 +247,15 @@ CHORD_TYPE_TO_NAME = {
 # C
 # C# D D# E F
 MIDDLE_C_MIDI_NOTE = 60
+
+NOTE_NAME_TO_ENHARMONIC = {
+    "A#": "Bb",
+    "B": "Cb",
+    "C": "B#",
+    "C#": "Db",
+    "D#": "Eb",
+    "E": "Fb",
+    "F": "E#",
+    "F#": "Gb",
+    "G#": "Ab"
+}

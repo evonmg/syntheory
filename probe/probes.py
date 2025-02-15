@@ -191,6 +191,8 @@ class ProbeExperiment:
             output_type, dataset_label_column_name, dataset_labels
         )
 
+        self.dataset_labels = dataset_labels
+
         # add the zarr idx if not listed explicitly
         if "zarr_idx" not in set(dataset_labels.columns):
             dataset_labels["zarr_idx"] = np.arange(dataset_labels.shape[0])
@@ -633,32 +635,16 @@ class ProbeExperiment:
         # return instance of ProbeExperiment, loaded from persisted config + model state
         return cls(cfg, pretrained_scaler=scaler, pretrained_probe=probe, **kwargs)
     
-    def plot_umap(self,
-        dataset_labels_filepath,
-        dataset_label_column_name: str,
-        embeddings_zarr_filepath,
-        output_type: str,
-        model_layer: int = 0,
-    ) -> None:
-        self.dataset_labels_filepath = dataset_labels_filepath
-
-        # load the dataset and encode categorical targets
-        dataset_labels = pd.read_csv(dataset_labels_filepath)
-
-        # load the zarr, read only mode
-        data = zarr.open(embeddings_zarr_filepath, mode="r")
-
-        self.is_foundation_model_layers = len(data.shape) == 3
-
+    def plot_umap(self) -> None:
         # fix for inefficiency probably
-        y = dataset_labels[self.label_column].values
-        selector = dataset_labels["zarr_idx"].to_numpy()
+        y = self.dataset_labels[self.label_column].values
+        selector = self.dataset_labels["zarr_idx"].to_numpy()
 
         if self.is_foundation_model_layers:
-            X = np.array(data[selector][:, -1, :], dtype=np.float32)
+            X = np.array(self.embeddings[selector][:, -1, :], dtype=np.float32)
         else:
             # handcrafted features or encoders (only one layer)
-            X = np.array(data[selector], dtype=np.float32)
+            X = np.array(self.embeddings[selector], dtype=np.float32)
 
         # aggregate all the dataset label splits to plot
         print(y.shape)

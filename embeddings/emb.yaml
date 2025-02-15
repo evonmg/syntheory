@@ -17,8 +17,8 @@ concepts:
   # - tempos
   # - notes
   # - chords
-  # - scales
-  - intervals
+  - scales
+  # - intervals
   # - chord_progressions
 
 # Types of conditioning
