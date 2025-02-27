@@ -196,8 +196,8 @@ def start(
     )
     exp.train()
 
-    # TODO: this does not need to run every time we train a probe - maybe when embeddings are extracted this can be its separate step
-    exp.plot_umap()
+    # # TODO: this does not need to run every time we train a probe - maybe when embeddings are extracted this can be its separate step
+    # exp.plot_umap()
 
     return exp
 

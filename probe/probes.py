@@ -236,16 +236,6 @@ class ProbeExperiment:
         self.split_to_X = {}
         self.split_to_y = {}
 
-        # # fix for inefficiency probably
-        # self.y = dataset_labels[self.label_column].values
-        # selector = dataset_labels["zarr_idx"].to_numpy()
-
-        # if self.is_foundation_model_layers:
-        #     self.X = np.array(data[selector][:, -1, :], dtype=np.float32)
-        # else:
-        #     # handcrafted features or encoders (only one layer)
-        #     self.X = np.array(data[selector], dtype=np.float32)
-
         for split in (("train", train_df), ("test", test_df), ("valid", valid_df)):
             split_name, data_df = split
             selector = data_df["zarr_idx"].to_numpy()

@@ -4,12 +4,12 @@
 #SBATCH -n 4
 #SBATCH --mem=63G
 #SBATCH -t 24:00:00
-#SBATCH -J probe_experiment_fpaxcvrs
-#SBATCH -e logs/probe/fpaxcvrs/probe_experiment_fpaxcvrs-%j.err
-#SBATCH -o logs/probe/fpaxcvrs/probe_experiment_fpaxcvrs-%j.out
+#SBATCH -J probe_experiment_gaut5jgp
+#SBATCH -e logs/probe/gaut5jgp/probe_experiment_gaut5jgp-%j.err
+#SBATCH -o logs/probe/gaut5jgp/probe_experiment_gaut5jgp-%j.out
 
 # Activate virtual environment
 conda activate syntheory
 
 # Run the script
-python probe/main.py --sweep_id fpaxcvrs --wandb_project music-theory-text-encoder
+python probe/main.py --sweep_id gaut5jgp --wandb_project music-theory-text-encoder

@@ -3,20 +3,20 @@ from embeddings.config_checksum import compute_checksum
 
 
 CONCEPT_LABELS = {
-    # "chord_progressions": [
-    #     (19, "chord_progression"),
-    #     (12, "key_note_name"),
-    # ],
-    # "chords": [(4, "chord_type"), (12, "root_note_name"), (3, "inversion")],
-    "scales": [(7, "mode"), (12, "root_note_name")],
-    # "intervals": [(12, "interval"), (12, "root_note_name")],
-    # "notes": [(12, "root_note_pitch_class"), (9, "octave")],
-    # "time_signatures": [
-    #     (8, "time_signature"),
-    #     (6, "time_signature_beats"),
-    #     (3, "time_signature_subdivision"),
-    # ],
-    # "tempos": [(161, "bpm")],
+    "chord_progressions": [
+        (19, "chord_progression"),
+        (12, "key_note_name"),
+    ],
+    "chords": [(4, "chord_type"), (12, "root_note_name"), (3, "inversion")],
+    "scales": [(7, "mode"), (12, "root_note")],
+    "intervals": [(12, "interval"), (12, "root_note_name")],
+    "notes": [(12, "root_note_pitch_class"), (9, "octave")],
+    "time_signatures": [
+        (8, "time_signature"),
+        (6, "time_signature_beats"),
+        (3, "time_signature_subdivision"),
+    ],
+    "tempos": [(161, "bpm")],
 }
 
 CONDS = {
