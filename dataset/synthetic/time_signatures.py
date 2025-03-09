@@ -10,6 +10,27 @@ from dataset.music.midi import is_compound_time_signature
 from dataset.synthetic.metronome_configs import CLICK_CONFIGS
 from dataset.synthetic.dataset_writer import DatasetWriter, DatasetRowDescription
 
+_NUMBERS_TO_WORDS = {
+    2: "two",
+    3: "three",
+    4: "four",
+    6: "six",
+    8: "eight",
+    9: "nine",
+    12: "twelve",
+}
+
+_NUMBERS_TO_NOTE_LENGTH = {
+    2: "half",
+    4: "quarter",
+    8: "eighth",
+}
+
+_NUMBERS_TO_NOTE_LENGTH_BRITISH = {
+    2: "minim",
+    4: "crotchet",
+    8: "quaver",
+}
 
 def get_all_time_signatures() -> List[Tuple[int, int]]:
     return [(2, 2), (2, 4), (3, 4), (3, 8), (4, 4), (6, 8), (9, 8), (12, 8)]
@@ -126,6 +147,87 @@ def row_processor(
         )
     return rows
 
+def get_all_text_prompts(time_signature: Tuple[int, int]) -> List[str]:
+    prompts = []
+    # 4/4 time
+    prompts.append(f"{time_signature[0]}/{time_signature[1]} time")
+    # four-four time
+    prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]]}-{_NUMBERS_TO_WORDS[time_signature[1]]} time")
+    # 4 quarter notes per measure
+    prompts.append(f"{time_signature[0]} {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes per measure")
+    prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]]} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]}s per measure")
+    prompts.append(f"{time_signature[0]}/{time_signature[1]} meter")
+    prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]]} beats per bar (beat = {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]})")
+    prompts.append(f"{time_signature[0]} beats per bar (beat = {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]})")
+    prompts.append(f"{time_signature[0]} clicks in each measure ({_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} note as unit)")
+    prompts.append(f"Time signature of {time_signature[0]}/{time_signature[1]}")
+    prompts.append(f"{time_signature[0]}/{time_signature[1]} rhythm")
+    prompts.append(f"Generate a song in {time_signature[0]}/{time_signature[1]}")
+    prompts.append(f"Time with {_NUMBERS_TO_WORDS[time_signature[0]]} {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes per measure")
+    prompts.append(f"Time with {time_signature[0]} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]}s per bar")
+    prompts.append(f"Generate a song with {time_signature[0]}/{time_signature[1]} time signature")
+    prompts.append(f"Generate a song with {_NUMBERS_TO_WORDS[time_signature[0]]}-{_NUMBERS_TO_WORDS[time_signature[1]]} meter")
+    prompts.append(f"{time_signature[0]} beats per measure ({_NUMBERS_TO_NOTE_LENGTH[time_signature [1]]} beats)")
+    prompts.append(f"Time signature given by {_NUMBERS_TO_WORDS[time_signature[0]]} {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes")
+    prompts.append(f"Time signature divided by {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes, {time_signature[0]} of them per measure")
+    prompts.append(f"Time signature divided by {time_signature[0]} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]}s")
+    prompts.append(f"Music in {time_signature[0]}/{time_signature[1]} time")
+
+    if time_signature == (4,4):
+        prompts.append("Common time")
+    elif time_signature == (2,2):
+        prompts.append("Cut time")
+    elif time_signature[0] in {6,9,12}:
+        prompts.append(f"{int(time_signature[0]/3)} dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes per measure")
+        prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]/3]} beats per bar (beat = dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]})")
+        prompts.append(f"{int(time_signature[0]/3)} clicks in each measure (dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} note as unit)")
+        prompts.append(f"Time with {_NUMBERS_TO_WORDS[time_signature[0]/3]} dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes per measure")
+        prompts.append(f"{int(time_signature[0]/3)} beats per measure (dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature [1]/2]} beats)")
+        prompts.append(f"Time signature given by {_NUMBERS_TO_WORDS[time_signature[0]/3]} dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes")
+        prompts.append(f"Time signature divided by {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes, {int(time_signature[0]/3)} of them per measure")
+
+    return prompts
+
+def get_prompt_row_iterator(
+    time_signatures: Iterable[Tuple[int, int]],
+) -> Iterator[DatasetRowDescription]:
+    idx = 0
+    for time_signature in time_signatures:
+        prompts = get_all_text_prompts(time_signature)
+        for prompt in prompts:
+            yield (
+                idx,
+                {
+                    "time_signature": time_signature,
+                    "prompt": prompt,
+                },
+            )
+            idx += 1
+
+def prompt_row_processor(
+    dataset_path: Path, row: DatasetRowDescription
+) -> List[DatasetRowDescription]:
+    row_idx, row_info = row
+
+    time_signature = row_info["time_signature"]
+    prompt = row_info["prompt"]
+
+    rows = []
+
+    # record this row in the csv
+    rows.append(
+        (
+            row_idx,
+            {
+                "time_signature": time_signature,
+                "time_signature_beats": time_signature[0],
+                "time_signature_subdivision": time_signature[1],
+                "is_compound": int(is_compound_time_signature(time_signature)),
+                "prompt": prompt,
+            },
+        )
+    )
+    return rows
 
 if __name__ == "__main__":
     """This requires 1.48 GB.
@@ -133,27 +235,40 @@ if __name__ == "__main__":
     """
     # configure the dataset
     dataset_name = "time_signatures"
+    # dataset_writer = DatasetWriter(
+    #     dataset_name=dataset_name,
+    #     save_to_parent_directory=OUTPUT_DIR,
+    #     row_iterator=get_row_iterator(
+    #         get_all_time_signatures(),
+    #         click_configs=CLICK_CONFIGS,
+    #         num_reverb_levels=3,
+    #         num_random_offsets=10,
+    #         target_duration_per_sample_in_sec=4.0,
+    #     ),
+    #     row_processor=row_processor,
+    #     max_processes=8,
+    # )
+
+    # # check the resulting info csv / dataframe
+    # dataset_df = dataset_writer.create_dataset()
+
+    # # warn of any silent samples
+    # num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
+    # if num_silent_samples > 0:
+    #     warnings.warn(
+    #         f"In the {dataset_name} dataset, there were {num_silent_samples} silent samples.",
+    #         UserWarning,
+    #     )
+
     dataset_writer = DatasetWriter(
         dataset_name=dataset_name,
         save_to_parent_directory=OUTPUT_DIR,
-        row_iterator=get_row_iterator(
+        row_iterator=get_prompt_row_iterator(
             get_all_time_signatures(),
-            click_configs=CLICK_CONFIGS,
-            num_reverb_levels=3,
-            num_random_offsets=10,
-            target_duration_per_sample_in_sec=4.0,
         ),
-        row_processor=row_processor,
+        row_processor=prompt_row_processor,
         max_processes=8,
+        is_prompts=True,
     )
 
-    # check the resulting info csv / dataframe
     dataset_df = dataset_writer.create_dataset()
-
-    # warn of any silent samples
-    num_silent_samples = dataset_df[dataset_df["is_silent"] == True].shape[0]  # noqa
-    if num_silent_samples > 0:
-        warnings.warn(
-            f"In the {dataset_name} dataset, there were {num_silent_samples} silent samples.",
-            UserWarning,
-        )

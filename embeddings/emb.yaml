@@ -3,23 +3,24 @@ models:
   # - HANDCRAFT
   # - MUSICGEN_AUDIO_ENCODER
   # - JUKEBOX
-  - MUSICGEN_DECODER_LM_S
-  - MUSICGEN_DECODER_LM_M
-  - MUSICGEN_DECODER_LM_L
+  # - MUSICGEN_DECODER_LM_S
+  # - MUSICGEN_DECODER_LM_M
+  # - MUSICGEN_DECODER_LM_L
   # - MELSPEC
   # - MFCC
   # - CHROMA
-  - MUSICGEN_TEXT_ENCODER
+  # - MUSICGEN_TEXT_ENCODER
+  - BERT
 
 # Concepts to extract representations for
 concepts:
-  # - time_signatures
+  - time_signatures
   # - tempos
   # - notes
   # - chords
   # - scales
   # - intervals
-  - chord_progressions
+  # - chord_progressions
 
 # Types of conditioning
 conditionings:
