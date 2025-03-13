@@ -568,7 +568,7 @@ def get_text_embedding_from_model_using_config(
 ) -> np.ndarray:
     model_type = Model[model_config["model_type"]]
 
-    if model_type not in {Model.MUSICGEN_TEXT_ENCODER, Model.MUSICGEN_DECODER_LM_L, Model.MUSICGEN_DECODER_LM_M, Model.MUSICGEN_DECODER_LM_S}:
+    if model_type not in {Model.MUSICGEN_TEXT_ENCODER, Model.MUSICGEN_DECODER_LM_L, Model.MUSICGEN_DECODER_LM_M, Model.MUSICGEN_DECODER_LM_S, Model.BERT}:
         raise ValueError(
             f"Cannot extract text embeddings from {model_type}."
         )

@@ -8,7 +8,7 @@ import librosa as lr
 from librosa.feature import melspectrogram, chroma_cqt, mfcc
 
 import jukemirlib
-from transformers import MusicgenForConditionalGeneration, AutoProcessor
+from transformers import MusicgenForConditionalGeneration, AutoProcessor, BertModel, BertTokenizer
 
 import torch
 
@@ -28,6 +28,7 @@ class Model(Enum):
     MFCC = 8
     HANDCRAFT = 9
     MUSICGEN_TEXT_ENCODER = 10
+    BERT = 11
 
     def to_string(self) -> str:
         return self.name
@@ -198,11 +199,19 @@ def text_prompt_to_embedding_np_array(
             hidden_states=decoder_hidden_states,
             meanpool=meanpool
         )
+    elif model_type == Model.BERT:
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        model = BertModel.from_pretrained("bert-base-uncased")
 
+        encoded_input = tokenizer(prompt, return_tensors='pt')
+        output = model(**encoded_input)
+        last_hidden_state = output.last_hidden_state
+        embedding = last_hidden_state.mean(dim=1)
+        embedding = embedding.detach().numpy()
+        print(f"Sentence-level embedding shape: {embedding.shape}")
     else:
         raise ValueError(f"Invalid model: {model_type}")
     return embedding
-
 
 def extract_musicgen_audio_encoder_emb(
     audio_file: Path, 

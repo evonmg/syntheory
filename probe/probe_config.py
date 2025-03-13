@@ -3,14 +3,14 @@ from embeddings.config_checksum import compute_checksum
 
 
 CONCEPT_LABELS = {
-    # "chord_progressions": [
-    #     (19, "chord_progression"),
-    #     (12, "key_note_name"),
-    # ],
-    # "chords": [(4, "chord_type"), (12, "root_note_name"), (3, "inversion")],
-    # "scales": [(7, "mode"), (12, "root_note")],
-    # "intervals": [(12, "interval"), (12, "root_note_name")],
-    # "notes": [(12, "root_note_pitch_class"), (9, "octave")],
+    "chord_progressions": [
+        (19, "chord_progression"),
+        (12, "key_note_name"),
+    ],
+    "chords": [(4, "chord_type"), (12, "root_note_name"), (3, "inversion")],
+    "scales": [(7, "mode"), (12, "root_note")],
+    "intervals": [(12, "interval"), (12, "root_note_name")],
+    "notes": [(12, "root_note_pitch_class"), (9, "octave")],
     "time_signatures": [
         (8, "time_signature"),
         (6, "time_signature_beats"),
@@ -109,6 +109,22 @@ SWEEP_CONFIGS = {
             },
         },
         "wandb_project_name": "music-theory-text-encoder",
+    },
+    "bert": {
+        "wandb_sweep_parameters": {
+            "method": "grid",
+            "metric": {"goal": "minimize", "name": "primary_eval_metric"},
+            "parameters": {
+                "model_type": {"values": ["BERT"]},
+                "model_size": {"values": ["L"]},
+                "model_layer": {"values": [0]},
+                "concept": {"values": list(CONCEPT_LABELS.keys())},
+                **{
+                    x: {"values": y} for x, y in HYPERPARAMS.items()
+                },  # hyperparameter search
+            },
+        },
+        "wandb_project_name": "music-theory-bert",
     },
 }
 

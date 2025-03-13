@@ -147,45 +147,120 @@ def row_processor(
         )
     return rows
 
+from typing import List, Tuple
+
 def get_all_text_prompts(time_signature: Tuple[int, int]) -> List[str]:
     prompts = []
-    # 4/4 time
-    prompts.append(f"{time_signature[0]}/{time_signature[1]} time")
-    # four-four time
-    prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]]}-{_NUMBERS_TO_WORDS[time_signature[1]]} time")
-    # 4 quarter notes per measure
-    prompts.append(f"{time_signature[0]} {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes per measure")
-    prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]]} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]}s per measure")
-    prompts.append(f"{time_signature[0]}/{time_signature[1]} meter")
-    prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]]} beats per bar (beat = {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]})")
-    prompts.append(f"{time_signature[0]} beats per bar (beat = {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]})")
-    prompts.append(f"{time_signature[0]} clicks in each measure ({_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} note as unit)")
-    prompts.append(f"Time signature of {time_signature[0]}/{time_signature[1]}")
-    prompts.append(f"{time_signature[0]}/{time_signature[1]} rhythm")
-    prompts.append(f"Generate a song in {time_signature[0]}/{time_signature[1]}")
-    prompts.append(f"Time with {_NUMBERS_TO_WORDS[time_signature[0]]} {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes per measure")
-    prompts.append(f"Time with {time_signature[0]} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]}s per bar")
-    prompts.append(f"Generate a song with {time_signature[0]}/{time_signature[1]} time signature")
-    prompts.append(f"Generate a song with {_NUMBERS_TO_WORDS[time_signature[0]]}-{_NUMBERS_TO_WORDS[time_signature[1]]} meter")
-    prompts.append(f"{time_signature[0]} beats per measure ({_NUMBERS_TO_NOTE_LENGTH[time_signature [1]]} beats)")
-    prompts.append(f"Time signature given by {_NUMBERS_TO_WORDS[time_signature[0]]} {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes")
-    prompts.append(f"Time signature divided by {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]]} notes, {time_signature[0]} of them per measure")
-    prompts.append(f"Time signature divided by {time_signature[0]} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[time_signature[1]]}s")
-    prompts.append(f"Music in {time_signature[0]}/{time_signature[1]} time")
+    num, denom = time_signature  # Unpacking for readability
+    
+    # Core time signature prompts
+    prompts.append(f"{num}/{denom} time")
+    prompts.append(f"{num}/{denom} meter")
+    prompts.append(f"{num}/{denom} rhythm")
+    prompts.append(f"{_NUMBERS_TO_WORDS[num]}-{_NUMBERS_TO_WORDS[denom]} time")
+    prompts.append(f"Time signature: {num}/{denom}")
+    prompts.append(f"Musical time signature of {num}/{denom}")
+    prompts.append(f"{num} beats per measure, each a {_NUMBERS_TO_NOTE_LENGTH[denom]} note")
+    prompts.append(f"{num} {_NUMBERS_TO_NOTE_LENGTH[denom]} notes in each measure")
+    prompts.append(f"{num} beats per bar ({_NUMBERS_TO_NOTE_LENGTH[denom]} unit beat)")
+    prompts.append(f"A steady {num}/{denom} groove")
+    prompts.append(f"A melody in {num}/{denom} meter")
+    prompts.append(f"Generate a song in {num}/{denom}")
+    prompts.append(f"Music written in {num}/{denom} time")
+    prompts.append(f"Rhythm structured in {num}/{denom} notation")
+    prompts.append(f"The time signature is {num}/{denom}")
+    prompts.append(f"The time signature is divided by {denom} with each measure containing {num} beats")
+    prompts.append(f"The time signature consists of {num} beats per measure, with each beat being a {_NUMBERS_TO_NOTE_LENGTH[denom]}-note")
+    prompts.append(f"In {num}/{denom} time, the measure is divided into {num} parts")
+    prompts.append(f"In {num}/{denom} meter, the bar consists of {num} beats")
+    prompts.append(f"The rhythm structure is defined by the time signature {num}/{denom}")
+    prompts.append(f"This composition is set in a time signature of {num}/{denom}")
+    prompts.append(f"This piece is in {num}/{denom} time, with {num} beats per measure")
+    
+    # Add more phrasing variations
+    prompts.append(f"Time with {num} {_NUMBERS_TO_NOTE_LENGTH[denom]} notes per measure")
+    prompts.append(f"Time with {num} {_NUMBERS_TO_NOTE_LENGTH_BRITISH[denom]}s per bar")
+    prompts.append(f"Generate a song with {num}/{denom} time signature")
+    prompts.append(f"Generate a song with {_NUMBERS_TO_WORDS[num]}-{_NUMBERS_TO_WORDS[denom]} meter")
+    prompts.append(f"{num} beats per measure ({_NUMBERS_TO_NOTE_LENGTH[denom]} note beats)")
+    prompts.append(f"Time signature given by {num} {_NUMBERS_TO_NOTE_LENGTH[denom]} notes")
+    prompts.append(f"Time signature divided by {_NUMBERS_TO_NOTE_LENGTH[denom]} notes, {num} of them per measure")
+    prompts.append(f"Musical meter: {num} {_NUMBERS_TO_NOTE_LENGTH[denom]} note beats per measure")
+    prompts.append(f"Composition written in {num} over {denom} time")
+    prompts.append(f"Notation style with {num} {_NUMBERS_TO_NOTE_LENGTH[denom]} note pulses per bar")
+    prompts.append(f"A melody set in {num}-{denom} rhythm")
+    prompts.append(f"A steady {num}/{denom} groove")
+    prompts.append(f"A song with {num}/{denom} time signature")
+    prompts.append(f"Generate a melody in {num}/{denom} time")
+    prompts.append(f"Create a rhythm in {num}/{denom}")
+    prompts.append(f"A rhythmic structure based on {num}/{denom}")
+    prompts.append(f"Notation style: {num}/{denom} meter")
+    prompts.append(f"Generate a groove in {num}/{denom} time")
+    prompts.append(f"Song structure based on {num}/{denom} time signature")
+    prompts.append(f"A rhythmic pulse in {num}/{denom}")
+    prompts.append(f"A groove based on {num}/{denom} time signature")
 
-    if time_signature == (4,4):
+    # Special cases
+    if time_signature == (4, 4):
         prompts.append("Common time")
-    elif time_signature == (2,2):
-        prompts.append("Cut time")
-    elif time_signature[0] in {6,9,12}:
-        prompts.append(f"{int(time_signature[0]/3)} dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes per measure")
-        prompts.append(f"{_NUMBERS_TO_WORDS[time_signature[0]/3]} beats per bar (beat = dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]})")
-        prompts.append(f"{int(time_signature[0]/3)} clicks in each measure (dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} note as unit)")
-        prompts.append(f"Time with {_NUMBERS_TO_WORDS[time_signature[0]/3]} dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes per measure")
-        prompts.append(f"{int(time_signature[0]/3)} beats per measure (dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature [1]/2]} beats)")
-        prompts.append(f"Time signature given by {_NUMBERS_TO_WORDS[time_signature[0]/3]} dotted {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes")
-        prompts.append(f"Time signature divided by {_NUMBERS_TO_NOTE_LENGTH[time_signature[1]/2]} notes, {int(time_signature[0]/3)} of them per measure")
+        prompts.append("4/4 meter, also known as common time")
+        prompts.append("A song structured in common time")
+        prompts.append("A steady 4/4 rhythm with a driving pulse")
+        prompts.append("A standard beat pattern in 4/4 time")
 
+    elif time_signature == (2, 2):
+        prompts.append("Cut time")
+        prompts.append("Cut time rhythm")
+        prompts.append("A song structured in cut common time")
+        prompts.append("A fast 2/2 feel with half-note pulses")
+
+    # Compound meters (e.g., 6/8, 9/8, 12/8)
+    elif num in {6, 9, 12} and denom in {8, 16}:
+        beats_per_bar = num // 3
+        note_length = denom // 2  # E.g., 8 → dotted quarter, 16 → dotted eighth
+        prompts.append(f"{beats_per_bar} dotted {_NUMBERS_TO_NOTE_LENGTH[note_length]} beats per measure")
+        prompts.append(f"A swinging feel with {beats_per_bar} beats per bar")
+        prompts.append(f"{beats_per_bar}-beat feel (each beat = dotted {_NUMBERS_TO_NOTE_LENGTH[note_length]})")
+        prompts.append(f"A shuffle rhythm in {num}/{denom}")
+        prompts.append(f"A compound time groove in {num}/{denom}")
+        prompts.append(f"A syncopated pattern in {num}/{denom} meter")
+        prompts.append(f"A lilting {num}/{denom} feel, often heard in folk music")
+
+    # Triple meter & waltz feel (3/4, 6/8)
+    elif num == 3 and denom == 4:
+        prompts.append(f"Waltz time with quarter note beats")
+        prompts.append(f"Triple meter groove with quarter note subdivisions")
+        prompts.append(f"A steady 3/4 feel, characteristic of waltzes")
+        prompts.append(f"A triple time signature groove, emphasizing the first beat")
+        prompts.append(f"A smooth swaying rhythm in 3/4 meter")
+
+    if time_signature == (6, 8):
+        prompts.append(f"Compound duple meter groove with dotted quarter beats")  
+        prompts.append(f"A lilting rhythm with two beats per measure (each a dotted quarter note)")  
+        prompts.append(f"A rhythmic pattern emphasizing two strong beats in 6/8 time")  
+    elif time_signature == (9, 8):
+        prompts.append(f"Compound triple meter groove with dotted quarter beats")  
+        prompts.append(f"A rolling rhythm with three beats per measure (each a dotted quarter note)")  
+        prompts.append(f"A triplet-based feel in 9/8 time, emphasizing three strong pulses")  
+        prompts.append(f"A waltz-like rhythm with an extra lilt in 9/8 meter")  
+        prompts.append(f"A rhythm pattern divided into three groups of three eighth notes per measure")
+    elif time_signature == (12, 8):
+        prompts.append(f"Compound quadruple meter groove with dotted quarter beats")  
+        prompts.append(f"A rolling groove with four beats per measure (each a dotted quarter note)")  
+        prompts.append(f"A rhythm with four strong pulses, each subdivided into triplets")  
+        prompts.append(f"A dance-like rhythm in 12/8 time, giving a smooth swaying effect")  
+    
+    # Genre-specific prompts
+    prompts.append(f"A jazz improvisation in {num}/{denom}")
+    prompts.append(f"A blues shuffle in {num}/{denom}")
+    prompts.append(f"A rock groove in {num}/{denom} time")
+    prompts.append(f"A progressive metal riff in {num}/{denom}")
+    prompts.append(f"A classical composition in {num}/{denom} meter")
+    prompts.append(f"A traditional folk melody in {num}/{denom}")
+    prompts.append(f"A Latin rhythm with {num}/{denom} meter")
+    prompts.append(f"A syncopated funk groove in {num}/{denom}")
+    prompts.append(f"A cinematic score in {num}/{denom}, evoking an epic feel")
+    
     return prompts
 
 def get_prompt_row_iterator(

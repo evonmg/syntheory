@@ -73,7 +73,7 @@ def main():
 
     for concept_name in concepts:
         for model in models:
-            if model.split("_LM_")[-1] != "L" and model != "MUSICGEN_TEXT_ENCODER":
+            if model.split("_LM_")[-1] != "L" and model != "MUSICGEN_TEXT_ENCODER" and model != "BERT":
                 continue
 
             base_path= OUTPUT_DIR / concept_name

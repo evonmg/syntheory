@@ -60,6 +60,9 @@ def get_all_embedding_exports(
         elif "MUSICGEN_TEXT_ENCODER" in model_name:
             model_size = "L"
             model_type = "MUSICGEN_TEXT_ENCODER"
+        elif "BERT" in model_name:
+            model_size = "L"
+            model_type = "BERT"
         else:
             # handcrafted features, default to L
             model_size = "L"
@@ -101,7 +104,7 @@ def start(
     # dataset and experiment configuration
     probe_config = wandb.config
 
-    # model type: [ JUKEBOX | MUSICGEN_DECODER | MUSICGEN_AUDIO_ENCODER | MUSICGEN_TEXT_ENCODER | MFCC | CHROMA | MELSPEC | HANDCRAFT ]
+    # model type: [ JUKEBOX | MUSICGEN_DECODER | MUSICGEN_AUDIO_ENCODER | MUSICGEN_TEXT_ENCODER | BERT | MFCC | CHROMA | MELSPEC | HANDCRAFT ]
     model_type = probe_config.model_type
     # model size: [S | M | L]
     model_size = probe_config.model_size
